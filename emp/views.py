@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from .models import Emp
 
 
-def emp_home(request):
+def emp_home(request):         # this is main emp_page
     emps=Emp.objects.all()
     return render(request,"emp/home.html",{'emps':emps})
 
