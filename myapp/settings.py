@@ -82,15 +82,22 @@ WSGI_APPLICATION = 'myapp.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         # 'NAME': BASE_DIR / 'db.sqlite3',
+#         'NAME': 'ems_db', # add you database name (schema name eg: newemp)
+#         'USER': 'root',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': '3306'
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        # 'NAME': BASE_DIR / 'db.sqlite3',
-        'NAME': 'newemp', # add you database name (schema name eg: newemp)
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': '3306'
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 

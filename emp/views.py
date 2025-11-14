@@ -64,3 +64,6 @@ def do_update_emp(request,emp_id):
             e.working=True
         e.save()
     return redirect("/emp/home/")
+
+
+
