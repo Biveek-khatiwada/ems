@@ -13,8 +13,8 @@ class CustomUser(models.Model):
     phone_number = models.BigIntegerField(
         _("Phone Number"),
         validators=[
-            MinValueValidator(1000000000),  # 10-digit minimum
-            MaxValueValidator(999999999999999)  # 15-digit maximum
+            MinValueValidator(1000000000), 
+            MaxValueValidator(999999999999999)  
         ],
         unique=True,
         blank=False,
