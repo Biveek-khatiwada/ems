@@ -20,3 +20,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# password: Bca4thsemproject,  Username (leave blank to use 'acer'): Bibekkhatiwada@4thproject12
+# Email address: Khatiwadabibek988@gmail.com
