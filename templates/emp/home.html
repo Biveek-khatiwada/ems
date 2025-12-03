@@ -1,31 +1,567 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Employee Dashboard</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Dashboard | Admin Portal</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #4361ee;
+        --primary-dark: #3a56d4;
+        --secondary: #7209b7;
+        --success: #4cc9f0;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --gray: #6c757d;
+        --gray-light: #e9ecef;
+        --border: #dee2e6;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f5f7fb;
+        color: var(--dark);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      /* Header Styles */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .header h1 {
+        font-weight: 700;
+        color: var(--dark);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .header h1 i {
+        color: var(--primary);
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        padding: 8px 15px;
+        border-radius: 50px;
+        box-shadow: var(--shadow);
+      }
+
+      .user-info img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      /* Stats Cards */
+      .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: var(--shadow);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-left: 4px solid var(--primary);
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .stat-card.primary {
+        border-left-color: var(--primary);
+      }
+
+      .stat-card.secondary {
+        border-left-color: var(--secondary);
+      }
+
+      .stat-card.success {
+        border-left-color: var(--success);
+      }
+
+      .stat-card .stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 10px 0;
+      }
+
+      .stat-card .stat-label {
+        color: var(--gray);
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Table Styles */
+      .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        margin-bottom: 30px;
+      }
+
+      .card-header {
+        padding: 20px 25px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .card-header h3 {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .search-box {
+        position: relative;
+        width: 300px;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 10px 15px 10px 40px;
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+      }
+
+      .search-box i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gray);
+      }
+
+      .table-container {
+        overflow-x: auto;
+      }
+
+      .employee-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .employee-table thead {
+        background-color: var(--gray-light);
+      }
+
+      .employee-table th {
+        padding: 15px 20px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--dark);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .employee-table td {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .employee-table tbody tr {
+        transition: background-color 0.2s;
+      }
+
+      .employee-table tbody tr:hover {
+        background-color: rgba(67, 97, 238, 0.05);
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .badge-primary {
+        background-color: rgba(67, 97, 238, 0.1);
+        color: var(--primary);
+      }
+
+      .badge-secondary {
+        background-color: rgba(114, 9, 183, 0.1);
+        color: var(--secondary);
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .btn-sm {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid var(--border);
+        color: var(--gray);
+      }
+
+      .btn-outline:hover {
+        background-color: var(--gray-light);
+      }
+
+      /* Pagination */
+      .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 25px;
+        border-top: 1px solid var(--border);
+      }
+
+      .pagination-info {
+        color: var(--gray);
+        font-size: 0.9rem;
+      }
+
+      .pagination-controls {
+        display: flex;
+        gap: 10px;
+      }
+
+      .pagination-controls a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        background-color: white;
+        border: 1px solid var(--border);
+        color: var(--gray);
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+
+      .pagination-controls a:hover {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+
+      .pagination-controls a.active {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        padding: 20px;
+        color: var(--gray);
+        font-size: 0.9rem;
+        border-top: 1px solid var(--border);
+        margin-top: 30px;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .search-box {
+          width: 100%;
+        }
+
+        .card-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .stats-container {
+          grid-template-columns: 1fr;
+        }
+
+        .pagination {
+          flex-direction: column;
+          gap: 15px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h1>Employee Dashboard</h1>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1><i class="fas fa-users"></i> Employee Dashboard</h1>
+        <div class="user-info">
+          <img
+            src="https://ui-avatars.com/api/?name=Admin+User&background=4361ee&color=fff"
+            alt="Admin User"
+          />
+          <span>Admin User</span>
+        </div>
+      </div>
 
-    <div class="stats">
-      <h3>Total Employees: {{ emp_count }}</h3>
+      <!-- Stats Cards -->
+      <div class="stats-container">
+        <div class="stat-card primary">
+          <div class="stat-label">
+            <i class="fas fa-users"></i> Total Employees
+          </div>
+          <div class="stat-value">{{ emp_count }}</div>
+          <div class="stat-trend">All active employees</div>
+        </div>
+        <div class="stat-card secondary">
+          <div class="stat-label">
+            <i class="fas fa-building"></i> Departments
+          </div>
+          <div class="stat-value">12</div>
+          <div class="stat-trend">Across organization</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">
+            <i class="fas fa-calendar-check"></i> This Month
+          </div>
+          <div class="stat-value">5</div>
+          <div class="stat-trend">New hires</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">
+            <i class="fas fa-clock"></i> Last Updated
+          </div>
+          <div class="stat-value">{{ current_time|date:"M j" }}</div>
+          <div class="stat-trend">{{ current_time|date:"g:i A" }}</div>
+        </div>
+      </div>
+
+      <!-- Employee Table -->
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fas fa-list"></i> Employee Directory</h3>
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search employees..." />
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="employee-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Contact</th>
+                <th>Department</th>
+                <th>Address</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for emp in emp_details %}
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 10px">
+                    <img
+                      src="https://ui-avatars.com/api/?name={{ emp.user.username }}&background=random&size=40"
+                      alt="{{ emp.user.username }}"
+                      style="width: 40px; height: 40px; border-radius: 50%"
+                    />
+                    <div>
+                      <div style="font-weight: 500">
+                        {% if emp.user.first_name and emp.user.last_name %} {{
+                        emp.user.first_name }} {{ emp.user.last_name }} {% else
+                        %} {{ emp.user.username }} {% endif %}
+                      </div>
+                      <div style="font-size: 0.85rem; color: var(--gray)">
+                        @{{ emp.user.username }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-weight: 500">{{ emp.phone_number }}</div>
+                  <div style="font-size: 0.85rem; color: var(--gray)">
+                    {% if emp.user.email %} {{ emp.user.email }} {% else %} No
+                    email {% endif %}
+                  </div>
+                </td>
+                <td>
+                  <span class="badge badge-primary">{{ emp.department }}</span>
+                </td>
+                <td>
+                  <div style="max-width: 200px">
+                    {{ emp.address|truncatewords:8 }}
+                  </div>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-primary btn-sm">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-outline btn-sm">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline btn-sm">
+                      <i class="fas fa-envelope"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td
+                  colspan="5"
+                  style="text-align: center; padding: 40px; color: var(--gray)"
+                >
+                  <i
+                    class="fas fa-inbox"
+                    style="font-size: 2rem; margin-bottom: 10px; display: block"
+                  ></i>
+                  No employees found
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination --><!-- Pagination -->
+{% if emp_details.has_other_pages %}
+<div class="pagination">
+    
+    <div class="pagination-info">
+        Showing page {{ emp_details.number }} of {{ emp_details.paginator.num_pages }}
     </div>
 
-    {% if error %}
-    <div class="error">{{ error }}</div>
-    {% endif %}
+    <div class="pagination-controls">
 
-    <div class="employee-list">
-      <h3>Employees:</h3>
-      <ul>
-        {% for emp in emp_details %}
-        <li>
-          <strong>{{ emp.user.username }}</strong> - {{ emp.department }} - {{
-          emp.phone_number }}
-        </li>
-        {% empty %}
-        <li>No employees found</li>
+        {% if emp_details.has_previous %}
+            <a href="?page={{ emp_details.previous_page_number }}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        {% endif %}
+
+        {% for i in emp_details.paginator.page_range %}
+            {% if emp_details.number == i %}
+                <a class="active" href="?page={{ i }}">{{ i }}</a>
+            {% else %}
+                <a href="?page={{ i }}">{{ i }}</a>
+            {% endif %}
         {% endfor %}
-      </ul>
+
+        {% if emp_details.has_next %}
+            <a href="?page={{ emp_details.next_page_number }}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        {% endif %}
+
     </div>
+
+</div>
+{% endif %}
+
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>© 2023 Employee Management System | v2.1.0</p>
+      </div>
+    </div>
+
+    <script>
+      // Simple search functionality
+      document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.querySelector(".search-box input");
+        const tableRows = document.querySelectorAll(".employee-table tbody tr");
+
+        if (searchInput) {
+          searchInput.addEventListener("input", function () {
+            const searchTerm = this.value.toLowerCase();
+
+            tableRows.forEach((row) => {
+              const text = row.textContent.toLowerCase();
+              if (text.includes(searchTerm)) {
+                row.style.display = "";
+              } else {
+                row.style.display = "none";
+              }
+            });
+          });
+        }
+      });
+    </script>
   </body>
 </html>
