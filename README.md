@@ -18,15 +18,7 @@ An **Employee Management System (EMS)** built with **Django** to manage employee
 
 > This application is developed using **Python, Django, HTML/CSS, and Bootstrap**.
 
----
 
-## Demo
-
-**Employee Management System – Sample Video**
-
-[https://user-images.githubusercontent.com/95544839/215315801-f1f4bbfb-53c2-4e5a-8090-844e4f572b46.mp4](https://user-images.githubusercontent.com/95544839/215315801-f1f4bbfb-53c2-4e5a-8090-844e4f572b46.mp4)
-
----
 
 ## Installation
 
