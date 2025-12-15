@@ -4,12 +4,81 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 
+class Department(models.Model):
+    name = models.CharField(
+        _("Department Name"),
+        max_length=50,
+        unique=True,
+        blank=False,
+        null=False
+    )
+    
+    code = models.CharField(
+        _("Department Code"),
+        max_length=10,
+        unique=True,
+        blank=False,
+        null=False
+    )
+    
+    manager = models.ForeignKey(
+        'CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='managed_departments'
+    )
+    
+    description = models.TextField(
+        _("Description"),
+        blank=True,
+        null=True
+    )
+    
+    is_active = models.BooleanField(
+        _("Is Active"),
+        default=True
+    )
+    
+    created_at = models.DateTimeField(
+        _("Created At"),
+        auto_now_add=True
+    )
+    
+    updated_at = models.DateTimeField(
+        _("Updated At"),
+        auto_now=True
+    )
+
+    class Meta:
+        verbose_name = _("Department")
+        verbose_name_plural = _("Departments")
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+    
+    @property
+    def employee_count(self):
+        return self.employees.count() 
+    
+    def get_active_employees(self):
+        return self.employees.filter(is_active=True)
+
+
 class CustomUser(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
         editable=False
     )
+    
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='custom_user_profile'
+    )
+    
     phone_number = models.BigIntegerField(
         _("Phone Number"),
         validators=[
@@ -21,27 +90,48 @@ class CustomUser(models.Model):
         null=False,
         help_text=_("Enter 10-15 digit phone number")
     )
-    department = models.CharField(
-        _("Department"),
-        max_length=50,
-        blank=False,
-        null=False
+    
+    # Changed from CharField to ForeignKey
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='employees',
+        verbose_name=_("Department")
     )
+    
     address = models.TextField(
         _("Address"),
         max_length=100,
         blank=False,
         null=False
     )
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name='custom_user'
+    
+    # Add role field (optional but useful)
+    ROLE_CHOICES = [
+        ('employee', _('Employee')),
+        ('manager', _('Manager')),
+        ('admin', _('Administrator')),
+    ]
+    
+    role = models.CharField(
+        _("Role"),
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='employee'
     )
+    
+    is_active = models.BooleanField(
+        _("Is Active"),
+        default=True
+    )
+    
     created_at = models.DateTimeField(
         _("Created At"),
         auto_now_add=True
     )
+    
     updated_at = models.DateTimeField(
         _("Updated At"),
         auto_now=True
@@ -53,8 +143,24 @@ class CustomUser(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.username} - {self.department}"
+        return f"{self.user.get_full_name() or self.user.username} - {self.department.name if self.department else 'No Department'}"
+    
+    @property
+    def full_name(self):
+        return self.user.get_full_name()
+    
+    @property
+    def email(self):
+        return self.user.email
+    
+    @property
+    def username(self):
+        return self.user.username
 
     @classmethod
     def get_user_count(cls):
         return cls.objects.count()
+    
+    @classmethod
+    def get_active_users(cls):
+        return cls.objects.filter(is_active=True)
