@@ -57,15 +57,17 @@ class Department(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
-    
     @property
     def employee_count(self):
         return self.employees.count() 
     
+    @property
+    def active_employee_count(self):
+        return self.employees.filter(is_active=True).count()
+    
     def get_active_employees(self):
         return self.employees.filter(is_active=True)
-
-
+    
 class CustomUser(models.Model):
     id = models.UUIDField(
         primary_key=True,
