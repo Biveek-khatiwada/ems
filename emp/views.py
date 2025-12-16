@@ -92,5 +92,5 @@ def employee_dashboard(request):
         'selected_status': status_filter,
         'search_query': search_query,
     }
-    
-    return render(request, 'dashboard.html', context)
+    print(context)
+    return render(request, 'emp/dashboard.html', context)
