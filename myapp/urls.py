@@ -18,8 +18,7 @@ from django.urls import path, include
 from . import views,views_api
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("",views.home_page,name="home"),
-    path("emp",include('emp.urls')),
+    path("",include('emp.urls')),
     
     #api paths
     path('api/toggle-status/<uuid:employee_id>/', views_api.toggle_employee_status, name='toggle_employee_status'),
