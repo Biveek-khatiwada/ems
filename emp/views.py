@@ -324,3 +324,32 @@ def edit_department(request, department_id):
             })
     
     return JsonResponse({'success': False, 'errors': {'__all__': ['Invalid request']}})
+
+def delete_department(request, department_id):
+    """ Delete department via AJAX """
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            department = get_object_or_404(Department, id=department_id)
+            
+            
+            if department.employee_count > 0:
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Cannot delete department "{department.name}" because it has {department.employee_count} employees.'
+                })
+            
+            department_name = department.name
+            department.delete()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Department "{department_name}" deleted successfully!'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error deleting department: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request'})
