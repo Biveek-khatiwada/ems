@@ -7,7 +7,9 @@ from emp.models import CustomUser, Department
 from emp.forms import CustomUserCreationForm
 from django.http import JsonResponse
 from django.contrib import messages
-
+from emp.forms import DepartmentForm
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 
 def home_page(request):
     try:
@@ -185,158 +187,184 @@ def add_employee(request):
     
     return redirect('home_page')
 
+
+
+
+@login_required
 def manage_departments(request):
-    """ View to manage departments"""
+    """View to manage departments"""
     departments = Department.objects.all().order_by('name')
-    managers = CustomUser.objects.filter(role__in=['manager', 'admin'], is_active=True)
+    
+    total_departments = departments.count()
+    active_departments = departments.filter(is_active=True).count()
+    departments_with_managers = departments.exclude(manager__isnull=True).count()
+    
+
+    total_employees = 0
+    for dept in departments:
+        total_employees += dept.employee_count
+    
+    
+    managers = CustomUser.objects.filter(
+        role__in=['manager', 'admin'], 
+        is_active=True
+    ).select_related('user').order_by('user__first_name', 'user__last_name')
     
     return render(request, 'emp/manage_department.html', {
         'departments': departments,
-        'managers': managers
+        'managers': managers,
+        'total_departments': total_departments,
+        'active_departments': active_departments,
+        'departments_with_managers': departments_with_managers,
+        'total_employees': total_employees,
     })
     
+@login_required
+def get_department_data(request, department_id):
+    """Get department data for editing via AJAX"""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            department = get_object_or_404(Department, id=department_id)
+            
+            data = {
+                'id': str(department.id),
+                'name': department.name,
+                'code': department.code,
+                'description': department.description or '',
+                'manager': str(department.manager.id) if department.manager else '',
+                'is_active': department.is_active,
+                'created_at': department.created_at.strftime('%Y-%m-%d'),
+                'updated_at': department.updated_at.strftime('%Y-%m-%d'),
+                'employee_count': department.employee_count,
+                'active_employee_count': department.active_employee_count
+            }
+            
+            return JsonResponse({
+                'success': True,
+                'department': data
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+@login_required
+@require_http_methods(["POST"])
 def add_department(request):
-    """ Add new department via AJAX """
-    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    """Add new department via AJAX"""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         try:
-            name = request.POST.get('name')
-            code = request.POST.get('code')
-            description = request.POST.get('description', '')
-            manager_id = request.POST.get('manager')
-            is_active = request.POST.get('is_active') == 'on'
+            form = DepartmentForm(request.POST)
             
-            
-            if not name or not code:
+            if form.is_valid():
+                department = form.save()
+                
+                # Get manager name
+                manager_name = 'No Manager'
+                if department.manager:
+                    manager_name = department.manager.full_name or department.manager.username
+                
                 return JsonResponse({
-                    'success': False,
-                    'errors': {
-                        'name': ['Department name is required'] if not name else [],
-                        'code': ['Department code is required'] if not code else []
+                    'success': True,
+                    'message': f'Department "{department.name}" added successfully!',
+                    'department': {
+                        'id': str(department.id),
+                        'name': department.name,
+                        'code': department.code,
+                        'description': department.description or '',
+                        'manager_name': manager_name,
+                        'is_active': department.is_active,
+                        'employee_count': 0,
+                        'active_employee_count': 0,
+                        'created_at': department.created_at.strftime('%b %d, %Y')
                     }
                 })
-            
-            
-            if Department.objects.filter(name=name).exists():
-                return JsonResponse({
-                    'success': False,
-                    'errors': {'name': ['A department with this name already exists.']}
-                })
-            
-            if Department.objects.filter(code=code).exists():
-                return JsonResponse({
-                    'success': False,
-                    'errors': {'code': ['A department with this code already exists.']}
-                })
-            
-            
-            department = Department(
-                name=name,
-                code=code,
-                description=description,
-                is_active=is_active
-            )
-            
-            
-            if manager_id:
-                try:
-                    manager = CustomUser.objects.get(id=manager_id)
-                    department.manager = manager
-                except CustomUser.DoesNotExist:
-                    pass
-            
-            department.save()
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'Department "{name}" added successfully!'
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'errors': {'__all__': [str(e)]}
-            })
-    
-    return JsonResponse({'success': False, 'errors': {'__all__': ['Invalid request']}})
-
-def edit_department(request, department_id):
-    """ Edit existing department via AJAX """
-    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        try:
-            department = get_object_or_404(Department, id=department_id)
-            
-            name = request.POST.get('name')
-            code = request.POST.get('code')
-            description = request.POST.get('description', '')
-            manager_id = request.POST.get('manager')
-            is_active = request.POST.get('is_active') == 'on'
-            
-            
-            if not name or not code:
-                return JsonResponse({
-                    'success': False,
-                    'errors': {
-                        'name': ['Department name is required'] if not name else [],
-                        'code': ['Department code is required'] if not code else []
-                    }
-                })
-            
-            
-            if Department.objects.filter(name=name).exclude(id=department_id).exists():
-                return JsonResponse({
-                    'success': False,
-                    'errors': {'name': ['A department with this name already exists.']}
-                })
-            
-            if Department.objects.filter(code=code).exclude(id=department_id).exists():
-                return JsonResponse({
-                    'success': False,
-                    'errors': {'code': ['A department with this code already exists.']}
-                })
-            
-            
-            department.name = name
-            department.code = code
-            department.description = description
-            department.is_active = is_active
-            
-            
-            if manager_id:
-                try:
-                    manager = CustomUser.objects.get(id=manager_id)
-                    department.manager = manager
-                except CustomUser.DoesNotExist:
-                    department.manager = None
             else:
-                department.manager = None
-            
-            department.save()
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'Department "{name}" updated successfully!'
-            })
-            
+                # Return form errors
+                errors = {}
+                for field, error_list in form.errors.items():
+                    errors[field] = [str(e) for e in error_list]
+                return JsonResponse({
+                    'success': False,
+                    'errors': errors
+                }, status=400)
+                
         except Exception as e:
             return JsonResponse({
                 'success': False,
                 'errors': {'__all__': [str(e)]}
-            })
+            }, status=500)
     
-    return JsonResponse({'success': False, 'errors': {'__all__': ['Invalid request']}})
+    return JsonResponse({'success': False, 'errors': {'__all__': ['Invalid request']}}, status=400)
 
+@login_required
+@require_http_methods(["POST"])
+def edit_department(request, department_id):
+    """Edit existing department via AJAX"""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            department = get_object_or_404(Department, id=department_id)
+            form = DepartmentForm(request.POST, instance=department)
+            
+            if form.is_valid():
+                department = form.save()
+                
+                # Get manager name
+                manager_name = 'No Manager'
+                if department.manager:
+                    manager_name = department.manager.full_name or department.manager.username
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Department "{department.name}" updated successfully!',
+                    'department': {
+                        'id': str(department.id),
+                        'name': department.name,
+                        'code': department.code,
+                        'description': department.description or '',
+                        'manager_name': manager_name,
+                        'is_active': department.is_active,
+                        'employee_count': department.employee_count,
+                        'active_employee_count': department.active_employee_count,
+                        'updated_at': department.updated_at.strftime('%b %d, %Y')
+                    }
+                })
+            else:
+                # Return form errors
+                errors = {}
+                for field, error_list in form.errors.items():
+                    errors[field] = [str(e) for e in error_list]
+                return JsonResponse({
+                    'success': False,
+                    'errors': errors
+                }, status=400)
+                
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'errors': {'__all__': [str(e)]}
+            }, status=500)
+    
+    return JsonResponse({'success': False, 'errors': {'__all__': ['Invalid request']}}, status=400)
+
+@login_required
+@require_http_methods(["POST"])
 def delete_department(request, department_id):
-    """ Delete department via AJAX """
-    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    """Delete department via AJAX"""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         try:
             department = get_object_or_404(Department, id=department_id)
             
-            
+            # Check if department has employees
             if department.employee_count > 0:
                 return JsonResponse({
                     'success': False,
-                    'message': f'Cannot delete department "{department.name}" because it has {department.employee_count} employees.'
-                })
+                    'message': f'Cannot delete department "{department.name}" because it has {department.employee_count} employee(s). Please reassign or remove employees first.'
+                }, status=400)
             
             department_name = department.name
             department.delete()
@@ -350,6 +378,6 @@ def delete_department(request, department_id):
             return JsonResponse({
                 'success': False,
                 'message': f'Error deleting department: {str(e)}'
-            })
+            }, status=500)
     
-    return JsonResponse({'success': False, 'message': 'Invalid request'})
+    return JsonResponse({'success': False, 'message': 'Invalid request'}, status=400)
