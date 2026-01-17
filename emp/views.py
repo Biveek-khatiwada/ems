@@ -184,3 +184,4 @@ def add_employee(request):
     
     # For non-AJAX GET requests, show the regular page
     return redirect('home_page')
+
