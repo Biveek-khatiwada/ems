@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect,get_object_or_404
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.core.paginator import Paginator
@@ -249,6 +249,72 @@ def add_department(request):
             return JsonResponse({
                 'success': True,
                 'message': f'Department "{name}" added successfully!'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'errors': {'__all__': [str(e)]}
+            })
+    
+    return JsonResponse({'success': False, 'errors': {'__all__': ['Invalid request']}})
+
+def edit_department(request, department_id):
+    """ Edit existing department via AJAX """
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            department = get_object_or_404(Department, id=department_id)
+            
+            name = request.POST.get('name')
+            code = request.POST.get('code')
+            description = request.POST.get('description', '')
+            manager_id = request.POST.get('manager')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            
+            if not name or not code:
+                return JsonResponse({
+                    'success': False,
+                    'errors': {
+                        'name': ['Department name is required'] if not name else [],
+                        'code': ['Department code is required'] if not code else []
+                    }
+                })
+            
+            
+            if Department.objects.filter(name=name).exclude(id=department_id).exists():
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'name': ['A department with this name already exists.']}
+                })
+            
+            if Department.objects.filter(code=code).exclude(id=department_id).exists():
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'code': ['A department with this code already exists.']}
+                })
+            
+            
+            department.name = name
+            department.code = code
+            department.description = description
+            department.is_active = is_active
+            
+            
+            if manager_id:
+                try:
+                    manager = CustomUser.objects.get(id=manager_id)
+                    department.manager = manager
+                except CustomUser.DoesNotExist:
+                    department.manager = None
+            else:
+                department.manager = None
+            
+            department.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Department "{name}" updated successfully!'
             })
             
         except Exception as e:
