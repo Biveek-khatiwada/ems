@@ -160,9 +160,9 @@ def add_employee(request):
                     messages.error(request, f'Error adding employee: {str(e)}')
                     return redirect('home_page')
         else:
-            # Form is invalid
+            
             if is_ajax:
-                # Return form errors as JSON
+            
                 errors = {}
                 for field in form.errors:
                     errors[field] = form.errors[field]
@@ -171,18 +171,18 @@ def add_employee(request):
                     'errors': errors
                 }, status=400)
             else:
-                # For non-AJAX, redirect back with form errors
+            
                 messages.error(request, 'Please correct the errors below.')
-                # You might want to store form data in session here
+            
                 return redirect('home_page')
     
     elif request.method == 'GET' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        # Return form HTML for AJAX GET request
+        
         form = CustomUserCreationForm()
         form_html = render(request, 'emp/partials/employee_form.html', {'form': form}).content.decode()
         return JsonResponse({'form_html': form_html})
     
-    # For non-AJAX GET requests, show the regular page
+    
     return redirect('home_page')
 
 def manage_departments(request):
@@ -194,3 +194,67 @@ def manage_departments(request):
         'departments': departments,
         'managers': managers
     })
+    
+def add_department(request):
+    """ Add new department via AJAX """
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            name = request.POST.get('name')
+            code = request.POST.get('code')
+            description = request.POST.get('description', '')
+            manager_id = request.POST.get('manager')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            
+            if not name or not code:
+                return JsonResponse({
+                    'success': False,
+                    'errors': {
+                        'name': ['Department name is required'] if not name else [],
+                        'code': ['Department code is required'] if not code else []
+                    }
+                })
+            
+            
+            if Department.objects.filter(name=name).exists():
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'name': ['A department with this name already exists.']}
+                })
+            
+            if Department.objects.filter(code=code).exists():
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'code': ['A department with this code already exists.']}
+                })
+            
+            
+            department = Department(
+                name=name,
+                code=code,
+                description=description,
+                is_active=is_active
+            )
+            
+            
+            if manager_id:
+                try:
+                    manager = CustomUser.objects.get(id=manager_id)
+                    department.manager = manager
+                except CustomUser.DoesNotExist:
+                    pass
+            
+            department.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Department "{name}" added successfully!'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'errors': {'__all__': [str(e)]}
+            })
+    
+    return JsonResponse({'success': False, 'errors': {'__all__': ['Invalid request']}})
