@@ -186,7 +186,11 @@ def add_employee(request):
     return redirect('home_page')
 
 def manage_departments(request):
-  """ View to manage departments"""
-  departments = Department.objects.all().order_by('name')
-  return render(request, 'emp/manage_department.html', {'departments':departments})
+    """ View to manage departments"""
+    departments = Department.objects.all().order_by('name')
+    managers = CustomUser.objects.filter(role__in=['manager', 'admin'], is_active=True)
     
+    return render(request, 'emp/manage_department.html', {
+        'departments': departments,
+        'managers': managers
+    })
