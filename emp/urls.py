@@ -8,6 +8,7 @@ urlpatterns = [
     path('manage-departments/',views.manage_departments,name='manage_departments'),
     path('departments/add/', views.add_department, name='add_department'),
     path('departments/<uuid:department_id>/edit/', views.edit_department, name='edit_department'),
+     path('departments/<uuid:department_id>/delete/', views.delete_department, name='delete_department'),
     
 ]
 
