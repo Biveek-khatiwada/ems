@@ -185,3 +185,8 @@ def add_employee(request):
     # For non-AJAX GET requests, show the regular page
     return redirect('home_page')
 
+def manage_departments(request):
+  """ View to manage departments"""
+  departments = Department.objects.all().order_by('name')
+  return render(request, 'emp/manage_department.html', {'departments':departments})
+    
