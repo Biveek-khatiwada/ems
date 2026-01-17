@@ -1,3 +1,4 @@
+<!-- templates/emp/manage_department.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,15 +40,15 @@
             color: var(--dark);
             line-height: 1.6;
             min-height: 100vh;
-            padding: 20px;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            padding: 20px;
         }
 
-        /* Header Styles */
+        /* Header */
         .header {
             display: flex;
             justify-content: space-between;
@@ -150,227 +151,101 @@
             margin-bottom: 5px;
         }
 
-        .stat-trend {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.85rem;
-            margin-top: 10px;
+        /* Department Cards */
+        .department-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
         }
 
-        .trend-up { color: var(--success); }
-        .trend-down { color: var(--danger); }
-
-        /* Filter Section */
-        .filter-section {
+        .department-card {
             background: white;
             border-radius: var(--radius);
-            padding: 20px;
-            margin-bottom: 30px;
+            padding: 25px;
             box-shadow: var(--shadow);
-        }
-
-        .filter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .filter-group {
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--secondary);
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            height: 100%;
         }
 
-        .filter-group label {
-            font-weight: 500;
-            font-size: 0.9rem;
-            color: var(--gray);
+        .department-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
         }
 
-        .filter-group select,
-        .filter-group input {
-            padding: 10px 15px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            font-size: 0.9rem;
-            transition: all 0.3s;
-        }
-
-        .filter-group select:focus,
-        .filter-group input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-        }
-
-        /* Department Table */
-        .card {
-            background: white;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            margin-bottom: 30px;
-        }
-
-        .card-header {
-            padding: 25px;
-            border-bottom: 1px solid var(--border);
+        .department-card .dept-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 15px;
         }
 
-        .card-header h3 {
-            font-weight: 600;
-            font-size: 1.3rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .search-box {
-            position: relative;
-            min-width: 300px;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 12px 15px 12px 45px;
-            border: 1px solid var(--border);
-            border-radius: 50px;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-        }
-
-        .search-box input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-        }
-
-        .search-box i {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray);
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        .department-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 1000px;
-        }
-
-        .department-table thead {
-            background-color: var(--light);
-        }
-
-        .department-table th {
-            padding: 18px 25px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--dark);
-            border-bottom: 2px solid var(--border);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .department-table td {
-            padding: 20px 25px;
-            border-bottom: 1px solid var(--border);
-            vertical-align: middle;
-        }
-
-        .department-table tbody tr {
-            transition: background-color 0.2s;
-        }
-
-        .department-table tbody tr:hover {
-            background-color: rgba(67, 97, 238, 0.05);
-        }
-
-        .department-code {
-            background: var(--primary);
+        .department-card .dept-code {
+            background: var(--secondary);
             color: white;
             padding: 6px 12px;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            display: inline-block;
         }
 
-        .department-name {
+        .department-card .dept-name {
+            font-size: 1.3rem;
             font-weight: 600;
-            font-size: 1.1rem;
+            margin-bottom: 10px;
             color: var(--dark);
         }
 
-        .department-manager {
-            font-size: 0.9rem;
+        .department-card .dept-description {
             color: var(--gray);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .department-card .dept-manager {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .employee-count {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--light);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: 600;
+        .department-card .dept-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .dept-stat-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .dept-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
             color: var(--dark);
         }
 
-        .badge {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
+        .dept-stat-label {
             font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
+            color: var(--gray);
+            margin-top: 5px;
         }
 
-        .badge-primary {
-            background-color: rgba(67, 97, 238, 0.1);
-            color: var(--primary);
-        }
-
-        .badge-success {
-            background-color: rgba(6, 214, 160, 0.1);
-            color: var(--success);
-        }
-
-        .badge-danger {
-            background-color: rgba(239, 71, 111, 0.1);
-            color: var(--danger);
-        }
-
-        .badge-warning {
-            background-color: rgba(255, 209, 102, 0.1);
-            color: #e6b400;
-        }
-
+        /* Action Buttons */
         .action-buttons {
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            margin-top: 15px;
         }
 
         .btn {
@@ -384,16 +259,12 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            text-decoration: none;
         }
 
         .btn-sm {
             padding: 8px 12px;
             font-size: 0.85rem;
-        }
-
-        .btn-xs {
-            padding: 6px 10px;
-            font-size: 0.8rem;
         }
 
         .btn-primary {
@@ -417,11 +288,6 @@
             transform: translateY(-2px);
         }
 
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-        }
-
         .btn-outline {
             background-color: transparent;
             border: 1px solid var(--border);
@@ -442,65 +308,44 @@
             transform: translateY(-2px);
         }
 
-        .btn-icon {
-            width: 36px;
-            height: 36px;
-            padding: 0;
-            justify-content: center;
-            border-radius: 50%;
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
         }
 
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 25px;
-            border-top: 1px solid var(--border);
-            background: white;
+        .badge-success {
+            background-color: rgba(6, 214, 160, 0.1);
+            color: var(--success);
         }
 
-        .pagination-info {
+        .badge-danger {
+            background-color: rgba(239, 71, 111, 0.1);
+            color: var(--danger);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
             color: var(--gray);
-            font-size: 0.9rem;
+            grid-column: 1 / -1;
         }
 
-        .pagination-controls {
-            display: flex;
-            gap: 8px;
-        }
-
-        .pagination-controls a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: var(--radius-sm);
-            background-color: var(--light);
-            border: 1px solid var(--border);
-            color: var(--gray);
-            text-decoration: none;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-
-        .pagination-controls a:hover {
-            background-color: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            transform: translateY(-2px);
-        }
-
-        .pagination-controls a.active {
-            background-color: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .pagination-controls .disabled {
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
             opacity: 0.5;
-            cursor: not-allowed;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--dark);
         }
 
         /* Footer */
@@ -516,23 +361,36 @@
             box-shadow: var(--shadow);
         }
 
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--gray);
-        }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
 
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 20px;
+                padding: 20px 15px;
+            }
 
-        .empty-state h3 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            color: var(--dark);
+            .header-left {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+
+            .department-cards {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* Modal Styles */
@@ -718,57 +576,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-
-            .header {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 20px;
-                padding: 20px 15px;
-            }
-
-            .header-left {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .header-actions {
-                flex-direction: column;
-                width: 100%;
-            }
-
-            .search-box {
-                min-width: 100%;
-            }
-
-            .card-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .card-actions {
-                flex-direction: column;
-                width: 100%;
-            }
-
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
-
-            .filter-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .pagination {
-                flex-direction: column;
-                gap: 15px;
-            }
-        }
-
         /* Notification */
         .notification {
             position: fixed;
@@ -814,6 +621,32 @@
                 opacity: 0;
             }
         }
+
+        /* Add Department Button */
+        .add-dept-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--secondary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+
+        .add-dept-btn:hover {
+            transform: scale(1.1);
+            background: #5e0896;
+        }
     </style>
 </head>
 <body>
@@ -821,8 +654,8 @@
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <h1><i class="fas fa-building"></i> Department Management</h1>
-                <a href="/" class="btn btn-outline" style="text-decoration: none;">
+                <h1><i class="fas fa-building"></i> Manage Departments</h1>
+                <a href="{% url 'emp:home_page' %}" class="btn btn-outline" style="text-decoration: none;">
                     <i class="fas fa-arrow-left"></i> Back to Dashboard
                 </a>
             </div>
@@ -830,11 +663,23 @@
                 <button class="btn btn-secondary" onclick="showAddDepartmentModal()">
                     <i class="fas fa-plus-circle"></i> Add Department
                 </button>
-                <button class="btn btn-outline" onclick="exportDepartments()">
-                    <i class="fas fa-download"></i> Export
+                <button class="btn btn-outline" onclick="window.location.reload()">
+                    <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
         </div>
+
+        <!-- Messages Display -->
+        {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+            <div class="success-message">
+                <i class="fas fa-check-circle"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Stats Cards -->
         <div class="stats-container">
@@ -842,136 +687,153 @@
                 <div class="stat-icon">
                     <i class="fas fa-building"></i>
                 </div>
-                <div class="stat-value" id="totalDepartments">12</div>
+                <div class="stat-value">{{ departments.count }}</div>
                 <div class="stat-label">Total Departments</div>
-                <div class="stat-trend">
-                    <i class="fas fa-arrow-up trend-up"></i>
-                    <span>3 new this quarter</span>
-                </div>
             </div>
             <div class="stat-card secondary">
                 <div class="stat-icon">
                     <i class="fas fa-users"></i>
                 </div>
-                <div class="stat-value" id="totalEmployees">245</div>
-                <div class="stat-label">Total Employees</div>
-                <div class="stat-trend">
-                    <i class="fas fa-users"></i>
-                    <span>20 avg per dept</span>
+                <div class="stat-value">
+                    {% with total_employees=0 %}
+                        {% for dept in departments %}
+                            {% with dept.employee_count as count %}
+                                {% widthratio total_employees|add:count total_employees 1 %}
+                            {% endwith %}
+                        {% endfor %}
+                    {% endwith %}
                 </div>
+                <div class="stat-label">Total Employees</div>
             </div>
             <div class="stat-card success">
                 <div class="stat-icon">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="stat-value" id="activeDepartments">10</div>
-                <div class="stat-label">Active Departments</div>
-                <div class="stat-trend">
-                    <span>83% active rate</span>
+                <div class="stat-value">
+                    {% with active_count=0 %}
+                        {% for dept in departments %}
+                            {% if dept.is_active %}
+                                {% widthratio active_count|add:1 active_count 1 %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endwith %}
                 </div>
+                <div class="stat-label">Active Departments</div>
             </div>
             <div class="stat-card info">
                 <div class="stat-icon">
                     <i class="fas fa-user-tie"></i>
                 </div>
-                <div class="stat-value" id="managersCount">8</div>
-                <div class="stat-label">Department Managers</div>
-                <div class="stat-trend">
-                    <i class="fas fa-chart-line"></i>
-                    <span>67% assigned</span>
+                <div class="stat-value">
+                    {% with manager_count=0 %}
+                        {% for dept in departments %}
+                            {% if dept.manager %}
+                                {% widthratio manager_count|add:1 manager_count 1 %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endwith %}
                 </div>
+                <div class="stat-label">Managers Assigned</div>
             </div>
         </div>
 
-        <!-- Filter Section -->
-        <div class="filter-section">
-            <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-filter"></i> Filter Departments
-            </h3>
-            <div class="filter-grid">
-                <div class="filter-group">
-                    <label for="statusFilter"><i class="fas fa-circle"></i> Status</label>
-                    <select id="statusFilter" onchange="filterDepartments()">
-                        <option value="">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="searchDept"><i class="fas fa-search"></i> Search</label>
-                    <input 
-                        type="text" 
-                        id="searchDept" 
-                        placeholder="Search by name or code..."
-                        oninput="searchDepartments()"
-                    >
-                </div>
-            </div>
-        </div>
-
-        <!-- Department Table -->
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-list"></i> Department Directory</h3>
-                <div class="card-actions">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="liveSearchDept" placeholder="Live search departments...">
+        <!-- Department Cards -->
+        <div class="department-cards">
+            {% if departments %}
+                {% for dept in departments %}
+                <div class="department-card">
+                    <div class="dept-header">
+                        <div>
+                            <span class="dept-code">{{ dept.code }}</span>
+                            {% if dept.is_active %}
+                            <span class="badge badge-success" style="margin-left: 10px;">Active</span>
+                            {% else %}
+                            <span class="badge badge-danger" style="margin-left: 10px;">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--gray);">
+                            <i class="fas fa-calendar"></i> {{ dept.created_at|date:"M d, Y" }}
+                        </div>
                     </div>
-                    <button class="btn btn-outline" onclick="refreshData()">
-                        <i class="fas fa-sync-alt"></i> Refresh
+                    
+                    <div class="dept-name">{{ dept.name }}</div>
+                    
+                    {% if dept.description %}
+                    <div class="dept-description">
+                        {{ dept.description|truncatechars:150 }}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="dept-manager">
+                        <i class="fas fa-user-tie"></i>
+                        {% if dept.manager %}
+                            {{ dept.manager.full_name|default:dept.manager.username }}
+                        {% else %}
+                            <span style="color: var(--warning);">No Manager Assigned</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="dept-stats">
+                        <div class="dept-stat-item">
+                            <div class="dept-stat-value">{{ dept.employee_count }}</div>
+                            <div class="dept-stat-label">Employees</div>
+                        </div>
+                        <div class="dept-stat-item">
+                            <div class="dept-stat-value">{{ dept.active_employee_count }}</div>
+                            <div class="dept-stat-label">Active</div>
+                        </div>
+                        <div class="dept-stat-item">
+                            <div class="dept-stat-value">
+                                {% with manager_count=0 %}
+                                    {% for emp in dept.employees.all %}
+                                        {% if emp.role == 'manager' %}
+                                            {% widthratio manager_count|add:1 manager_count 1 %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endwith %}
+                            </div>
+                            <div class="dept-stat-label">Managers</div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-primary btn-sm" onclick="editDepartment('{{ dept.id }}')">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="viewDepartmentEmployees('{{ dept.id }}')">
+                            <i class="fas fa-users"></i> View Employees
+                        </button>
+                        {% if dept.employee_count == 0 %}
+                        <button class="btn btn-danger btn-sm" onclick="deleteDepartment('{{ dept.id }}', '{{ dept.name }}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        {% else %}
+                        <button class="btn btn-outline btn-sm" disabled title="Cannot delete department with employees">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-building"></i>
+                    <h3>No departments found</h3>
+                    <p>Start by adding your first department.</p>
+                    <button class="btn btn-secondary" onclick="showAddDepartmentModal()" style="margin-top: 15px;">
+                        <i class="fas fa-plus-circle"></i> Add First Department
                     </button>
                 </div>
-            </div>
-
-            <div class="table-container">
-                <table class="department-table">
-                    <thead>
-                        <tr>
-                            <th>Department</th>
-                            <th>Manager</th>
-                            <th>Employees</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="departmentTableBody">
-                        <!-- Sample Data - This will be populated by JavaScript -->
-                        <tr>
-                            <td colspan="6">
-                                <div class="spinner"></div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <div class="pagination">
-                <div class="pagination-info">
-                    Showing <span id="startIndex">1</span> to <span id="endIndex">10</span> of <span id="totalItems">0</span> departments
-                </div>
-                <div class="pagination-controls">
-                    <button class="btn btn-outline btn-sm" onclick="previousPage()" id="prevBtn" disabled>
-                        <i class="fas fa-chevron-left"></i> Previous
-                    </button>
-                    <button class="btn btn-outline btn-sm" onclick="nextPage()" id="nextBtn" disabled>
-                        Next <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
+            {% endif %}
         </div>
 
         <!-- Footer -->
         <div class="footer">
             <p>
-                <strong>Department Management System</strong> | v2.5.0
+                <strong>Department Management</strong> | Employee Management System v2.5.0
             </p>
             <p style="margin-top: 10px; font-size: 0.8rem; color: var(--gray);">
-                <i class="fas fa-database"></i> <span id="totalDeptCount">0</span> departments | 
-                <i class="fas fa-users"></i> <span id="totalEmpCount">0</span> employees |
-                <i class="fas fa-server"></i> Localhost
+                <i class="fas fa-database"></i> {{ departments.count }} departments
             </p>
         </div>
     </div>
@@ -984,7 +846,10 @@
                 <button class="close-modal" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="departmentForm">
+                <form id="departmentForm" method="POST" action="">
+                    {% csrf_token %}
+                    <input type="hidden" id="deptId" name="dept_id">
+                    
                     <div class="form-group">
                         <label for="deptName" class="form-label">
                             Department Name <span class="required">*</span>
@@ -1040,10 +905,9 @@
                         </label>
                         <select id="deptManager" name="manager" class="form-control">
                             <option value="">Select Manager</option>
-                            <!-- This will be populated with employees -->
-                            <option value="1">John Doe (Manager)</option>
-                            <option value="2">Jane Smith (Manager)</option>
-                            <option value="3">Bob Johnson (Manager)</option>
+                            {% for emp in managers %}
+                            <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.get_role_display }})</option>
+                            {% endfor %}
                         </select>
                         <small class="form-help">Assign a manager from existing employees</small>
                     </div>
@@ -1102,458 +966,57 @@
         </div>
     </div>
 
+    <!-- Floating Add Button -->
+    <button class="add-dept-btn" onclick="showAddDepartmentModal()">
+        <i class="fas fa-plus"></i>
+    </button>
+
     <script>
+        // Get CSRF token helper function
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         // Global variables
-        let currentPage = 1;
-        let itemsPerPage = 10;
-        let totalDepartments = 0;
-        let departments = [];
         let currentDepartmentId = null;
-        let filteredDepartments = [];
-
-        // Sample data - Replace with actual API calls
-        const sampleDepartments = [
-            {
-                id: 1,
-                name: "Human Resources",
-                code: "HR",
-                description: "Responsible for recruitment, training, and employee relations.",
-                manager: { id: 1, name: "John Doe", email: "john@example.com" },
-                employee_count: 15,
-                active_employees: 14,
-                is_active: true,
-                created_at: "2023-01-15",
-                updated_at: "2024-01-10"
-            },
-            {
-                id: 2,
-                name: "Information Technology",
-                code: "IT",
-                description: "Manages all technology infrastructure and support.",
-                manager: { id: 2, name: "Jane Smith", email: "jane@example.com" },
-                employee_count: 25,
-                active_employees: 24,
-                is_active: true,
-                created_at: "2023-02-20",
-                updated_at: "2024-01-15"
-            },
-            {
-                id: 3,
-                name: "Finance",
-                code: "FIN",
-                description: "Handles accounting, budgeting, and financial planning.",
-                manager: { id: 3, name: "Bob Johnson", email: "bob@example.com" },
-                employee_count: 12,
-                active_employees: 12,
-                is_active: true,
-                created_at: "2023-03-10",
-                updated_at: "2024-01-12"
-            },
-            {
-                id: 4,
-                name: "Marketing",
-                code: "MKT",
-                description: "Responsible for brand management and promotional activities.",
-                manager: null,
-                employee_count: 18,
-                active_employees: 17,
-                is_active: true,
-                created_at: "2023-04-05",
-                updated_at: "2024-01-08"
-            },
-            {
-                id: 5,
-                name: "Sales",
-                code: "SALES",
-                description: "Generates revenue through product and service sales.",
-                manager: { id: 4, name: "Alice Brown", email: "alice@example.com" },
-                employee_count: 30,
-                active_employees: 28,
-                is_active: true,
-                created_at: "2023-05-12",
-                updated_at: "2024-01-18"
-            },
-            {
-                id: 6,
-                name: "Operations",
-                code: "OPS",
-                description: "Manages day-to-day business operations and logistics.",
-                manager: { id: 5, name: "Charlie Wilson", email: "charlie@example.com" },
-                employee_count: 22,
-                active_employees: 21,
-                is_active: true,
-                created_at: "2023-06-18",
-                updated_at: "2024-01-14"
-            },
-            {
-                id: 7,
-                name: "Research & Development",
-                code: "R&D",
-                description: "Focuses on innovation and product development.",
-                manager: { id: 6, name: "Diana Lee", email: "diana@example.com" },
-                employee_count: 20,
-                active_employees: 19,
-                is_active: true,
-                created_at: "2023-07-22",
-                updated_at: "2024-01-16"
-            },
-            {
-                id: 8,
-                name: "Customer Support",
-                code: "CS",
-                description: "Provides assistance and support to customers.",
-                manager: { id: 7, name: "Evan Taylor", email: "evan@example.com" },
-                employee_count: 35,
-                active_employees: 33,
-                is_active: true,
-                created_at: "2023-08-30",
-                updated_at: "2024-01-20"
-            },
-            {
-                id: 9,
-                name: "Legal",
-                code: "LEGAL",
-                description: "Handles legal matters and compliance.",
-                manager: { id: 8, name: "Fiona Clark", email: "fiona@example.com" },
-                employee_count: 8,
-                active_employees: 8,
-                is_active: true,
-                created_at: "2023-09-05",
-                updated_at: "2024-01-11"
-            },
-            {
-                id: 10,
-                name: "Quality Assurance",
-                code: "QA",
-                description: "Ensures product quality and standards compliance.",
-                manager: null,
-                employee_count: 14,
-                active_employees: 13,
-                is_active: false,
-                created_at: "2023-10-10",
-                updated_at: "2024-01-09"
-            }
-        ];
-
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            loadDepartments();
-            setupEventListeners();
-        });
-
-        // Load departments data
-        function loadDepartments() {
-            // In a real application, this would be an API call
-            departments = sampleDepartments;
-            filteredDepartments = [...departments];
-            totalDepartments = departments.length;
-            
-            updateStats();
-            renderTable();
-            updatePagination();
-        }
-
-        // Update statistics
-        function updateStats() {
-            const totalDepts = departments.length;
-            const activeDepts = departments.filter(d => d.is_active).length;
-            const totalEmployees = departments.reduce((sum, dept) => sum + dept.employee_count, 0);
-            const managersCount = departments.filter(d => d.manager).length;
-            
-            document.getElementById('totalDepartments').textContent = totalDepts;
-            document.getElementById('activeDepartments').textContent = activeDepts;
-            document.getElementById('totalEmployees').textContent = totalEmployees;
-            document.getElementById('managersCount').textContent = managersCount;
-            document.getElementById('totalDeptCount').textContent = totalDepts;
-            document.getElementById('totalEmpCount').textContent = totalEmployees;
-        }
-
-        // Render department table
-        function renderTable() {
-            const tableBody = document.getElementById('departmentTableBody');
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const pageDepartments = filteredDepartments.slice(startIndex, endIndex);
-            
-            if (pageDepartments.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6">
-                            <div class="empty-state">
-                                <i class="fas fa-building"></i>
-                                <h3>No departments found</h3>
-                                <p>Try adjusting your filters or add new departments.</p>
-                                <button class="btn btn-secondary" onclick="showAddDepartmentModal()" style="margin-top: 15px;">
-                                    <i class="fas fa-plus-circle"></i> Add First Department
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            let html = '';
-            
-            pageDepartments.forEach(dept => {
-                const createdDate = new Date(dept.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                });
-                
-                html += `
-                    <tr data-dept-id="${dept.id}">
-                        <td>
-                            <div>
-                                <span class="department-code">${dept.code}</span>
-                                <div class="department-name">${dept.name}</div>
-                                ${dept.description ? `<div style="font-size: 0.85rem; color: var(--gray); margin-top: 5px;">${dept.description.substring(0, 60)}${dept.description.length > 60 ? '...' : ''}</div>` : ''}
-                            </div>
-                        </td>
-                        <td>
-                            ${dept.manager ? `
-                                <div class="department-manager">
-                                    <i class="fas fa-user-tie"></i>
-                                    <div>
-                                        <div style="font-weight: 500;">${dept.manager.name}</div>
-                                        <div style="font-size: 0.8rem; color: var(--gray);">${dept.manager.email}</div>
-                                    </div>
-                                </div>
-                            ` : `
-                                <span class="badge badge-warning">No Manager</span>
-                            `}
-                        </td>
-                        <td>
-                            <div style="display: flex; flex-direction: column; gap: 5px;">
-                                <span class="employee-count">
-                                    <i class="fas fa-users"></i> ${dept.employee_count} Employees
-                                </span>
-                                <div style="font-size: 0.85rem; color: var(--gray);">
-                                    ${dept.active_employees} active
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            ${dept.is_active ? `
-                                <span class="badge badge-success">
-                                    <i class="fas fa-check-circle"></i> Active
-                                </span>
-                            ` : `
-                                <span class="badge badge-danger">
-                                    <i class="fas fa-times-circle"></i> Inactive
-                                </span>
-                            `}
-                        </td>
-                        <td>
-                            <div style="font-weight: 500;">${createdDate}</div>
-                            <div style="font-size: 0.85rem; color: var(--gray);">
-                                ${getTimeAgo(new Date(dept.created_at))}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-primary btn-xs btn-icon" onclick="viewDepartment(${dept.id})" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-outline btn-xs btn-icon" onclick="editDepartment(${dept.id})" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-outline btn-xs btn-icon" onclick="viewEmployees(${dept.id})" title="View Employees">
-                                    <i class="fas fa-users"></i>
-                                </button>
-                                ${dept.employee_count === 0 ? `
-                                    <button class="btn btn-danger btn-xs btn-icon" onclick="deleteDepartment(${dept.id}, '${dept.name}')" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                ` : `
-                                    <button class="btn btn-outline btn-xs btn-icon" onclick="deleteDepartment(${dept.id}, '${dept.name}', ${dept.employee_count})" title="Delete" ${dept.employee_count > 0 ? 'disabled' : ''}>
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                `}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            tableBody.innerHTML = html;
-        }
-
-        // Get time ago string
-        function getTimeAgo(date) {
-            const now = new Date();
-            const diffMs = now - date;
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            
-            if (diffDays === 0) return 'Today';
-            if (diffDays === 1) return 'Yesterday';
-            if (diffDays < 7) return `${diffDays} days ago`;
-            if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-            if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-            return `${Math.floor(diffDays / 365)} years ago`;
-        }
-
-        // Update pagination
-        function updatePagination() {
-            const startIndex = (currentPage - 1) * itemsPerPage + 1;
-            const endIndex = Math.min(startIndex + itemsPerPage - 1, filteredDepartments.length);
-            
-            document.getElementById('startIndex').textContent = startIndex;
-            document.getElementById('endIndex').textContent = endIndex;
-            document.getElementById('totalItems').textContent = filteredDepartments.length;
-            
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            
-            prevBtn.disabled = currentPage === 1;
-            nextBtn.disabled = endIndex >= filteredDepartments.length;
-        }
-
-        // Pagination functions
-        function previousPage() {
-            if (currentPage > 1) {
-                currentPage--;
-                renderTable();
-                updatePagination();
-            }
-        }
-
-        function nextPage() {
-            const totalPages = Math.ceil(filteredDepartments.length / itemsPerPage);
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderTable();
-                updatePagination();
-            }
-        }
-
-        // Filter departments
-        function filterDepartments() {
-            const statusFilter = document.getElementById('statusFilter').value;
-            const searchTerm = document.getElementById('searchDept').value.toLowerCase();
-            
-            filteredDepartments = departments.filter(dept => {
-                let matches = true;
-                
-                // Status filter
-                if (statusFilter === 'active') {
-                    matches = matches && dept.is_active;
-                } else if (statusFilter === 'inactive') {
-                    matches = matches && !dept.is_active;
-                }
-                
-                // Search filter
-                if (searchTerm) {
-                    matches = matches && (
-                        dept.name.toLowerCase().includes(searchTerm) ||
-                        dept.code.toLowerCase().includes(searchTerm) ||
-                        (dept.description && dept.description.toLowerCase().includes(searchTerm))
-                    );
-                }
-                
-                return matches;
-            });
-            
-            currentPage = 1;
-            renderTable();
-            updatePagination();
-        }
-
-        // Search departments in real-time
-        function searchDepartments() {
-            filterDepartments();
-        }
-
-        // Live search functionality
-        document.getElementById('liveSearchDept')?.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#departmentTableBody tr[data-dept-id]');
-            
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
 
         // Show add department modal
         function showAddDepartmentModal() {
             currentDepartmentId = null;
             document.getElementById('modalTitle').textContent = 'Add Department';
             document.getElementById('departmentForm').reset();
+            document.getElementById('deptId').value = '';
             clearErrors();
             
             const modal = document.getElementById('departmentModal');
             modal.classList.add('active');
             
             // Setup character count for description
-            const descriptionField = document.getElementById('deptDescription');
-            const charCount = document.getElementById('descriptionCharCount');
-            
-            if (descriptionField && charCount) {
-                descriptionField.addEventListener('input', function() {
-                    const length = this.value.length;
-                    charCount.textContent = `${length}/500`;
-                    
-                    if (length > 450) {
-                        charCount.style.color = 'var(--warning)';
-                    } else if (length > 500) {
-                        charCount.style.color = 'var(--danger)';
-                    } else {
-                        charCount.style.color = 'var(--gray)';
-                    }
-                });
-                
-                // Trigger initial count
-                descriptionField.dispatchEvent(new Event('input'));
-            }
-        }
-
-        // View department details
-        function viewDepartment(deptId) {
-            const dept = departments.find(d => d.id === deptId);
-            if (!dept) return;
-            
-            alert(`Department: ${dept.name}\nCode: ${dept.code}\nEmployees: ${dept.employee_count}\nManager: ${dept.manager ? dept.manager.name : 'None'}\nStatus: ${dept.is_active ? 'Active' : 'Inactive'}`);
+            setupCharCount();
         }
 
         // Edit department
         function editDepartment(deptId) {
-            const dept = departments.find(d => d.id === deptId);
-            if (!dept) return;
-            
-            currentDepartmentId = deptId;
-            document.getElementById('modalTitle').textContent = 'Edit Department';
-            
-            // Fill form with department data
-            document.getElementById('deptName').value = dept.name;
-            document.getElementById('deptCode').value = dept.code;
-            document.getElementById('deptDescription').value = dept.description || '';
-            document.getElementById('deptManager').value = dept.manager ? dept.manager.id : '';
-            document.getElementById('deptIsActive').checked = dept.is_active;
-            
-            clearErrors();
-            
-            const modal = document.getElementById('departmentModal');
-            modal.classList.add('active');
-            
-            // Trigger character count update
-            const descriptionField = document.getElementById('deptDescription');
-            if (descriptionField) {
-                descriptionField.dispatchEvent(new Event('input'));
-            }
+            // In a real implementation, you would fetch department data via AJAX
+            // For now, we'll redirect to an edit page or show the modal with data
+            window.location.href = `/departments/${deptId}/edit/`;
         }
 
         // View department employees
-        function viewEmployees(deptId) {
-            const dept = departments.find(d => d.id === deptId);
-            if (!dept) return;
-            
-            alert(`Viewing ${dept.employee_count} employees in ${dept.name} department.\n\nIn a real application, this would show a list of employees.`);
+        function viewDepartmentEmployees(deptId) {
+            // Redirect to employee list filtered by department
+            window.location.href = `/?department=${deptId}`;
         }
 
         // Delete department
@@ -1574,35 +1037,13 @@
             const loader = saveBtn.querySelector('.loader');
             
             // Get form data
-            const formData = {
-                name: document.getElementById('deptName').value.trim(),
-                code: document.getElementById('deptCode').value.trim(),
-                description: document.getElementById('deptDescription').value.trim(),
-                manager: document.getElementById('deptManager').value,
-                is_active: document.getElementById('deptIsActive').checked
-            };
+            const formData = new FormData(form);
+            const deptId = document.getElementById('deptId').value;
             
-            // Basic validation
-            const errors = {};
-            
-            if (!formData.name) {
-                errors.name = ['Department name is required'];
-            }
-            
-            if (!formData.code) {
-                errors.code = ['Department code is required'];
-            } else if (formData.code.length > 10) {
-                errors.code = ['Code must be 10 characters or less'];
-            }
-            
-            if (formData.description.length > 500) {
-                errors.description = ['Description must be 500 characters or less'];
-            }
-            
-            // Show errors if any
-            if (Object.keys(errors).length > 0) {
-                showErrors(errors);
-                return;
+            // Determine the action URL
+            let actionUrl = '/departments/add/';
+            if (deptId) {
+                actionUrl = `/departments/${deptId}/edit/`;
             }
             
             // Show loading state
@@ -1610,53 +1051,44 @@
             loader.style.display = 'block';
             saveBtn.disabled = true;
             
-            // Simulate API call
-            setTimeout(() => {
-                if (currentDepartmentId) {
-                    // Edit existing department
-                    const index = departments.findIndex(d => d.id === currentDepartmentId);
-                    if (index !== -1) {
-                        departments[index] = {
-                            ...departments[index],
-                            ...formData,
-                            updated_at: new Date().toISOString().split('T')[0]
-                        };
-                        
-                        showNotification('success', `Department "${formData.name}" updated successfully!`);
-                    }
-                } else {
-                    // Add new department
-                    const newDept = {
-                        id: departments.length + 1,
-                        ...formData,
-                        manager: formData.manager ? { 
-                            id: parseInt(formData.manager), 
-                            name: 'New Manager', 
-                            email: 'manager@example.com' 
-                        } : null,
-                        employee_count: 0,
-                        active_employees: 0,
-                        created_at: new Date().toISOString().split('T')[0],
-                        updated_at: new Date().toISOString().split('T')[0]
-                    };
-                    
-                    departments.unshift(newDept);
-                    showNotification('success', `Department "${formData.name}" added successfully!`);
+            // Submit form via AJAX
+            fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken')
                 }
-                
-                // Update UI
-                filteredDepartments = [...departments];
-                updateStats();
-                renderTable();
-                updatePagination();
-                
-                // Reset form and close modal
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showNotification('success', data.message);
+                    
+                    // Close modal
+                    closeModal();
+                    
+                    // Reload page after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    // Show errors
+                    showErrors(data.errors);
+                    showNotification('error', 'Please correct the errors below.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred. Please try again.');
+            })
+            .finally(() => {
+                // Reset button state
                 btnText.style.display = 'inline';
                 loader.style.display = 'none';
                 saveBtn.disabled = false;
-                closeModal();
-                
-            }, 1500);
+            });
         }
 
         // Confirm deletion
@@ -1670,65 +1102,44 @@
             loader.style.display = 'block';
             confirmBtn.disabled = true;
             
-            // Simulate API call
-            setTimeout(() => {
-                const deptName = document.getElementById('deleteDeptName').textContent;
-                
-                // Remove department from array
-                departments = departments.filter(d => d.id !== currentDepartmentId);
-                filteredDepartments = filteredDepartments.filter(d => d.id !== currentDepartmentId);
-                
-                // Update UI
-                updateStats();
-                renderTable();
-                updatePagination();
-                
-                // Show success message
-                showNotification('success', `Department "${deptName}" deleted successfully!`);
-                
-                // Reset and close modal
+            // Delete department via AJAX
+            fetch(`/departments/${currentDepartmentId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showNotification('success', data.message);
+                    
+                    // Close modal
+                    closeModal();
+                    
+                    // Reload page after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    // Show error message
+                    showNotification('error', data.message || 'Failed to delete department.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred. Please try again.');
+            })
+            .finally(() => {
+                // Reset button state
                 btnText.style.display = 'inline';
                 loader.style.display = 'none';
                 confirmBtn.disabled = false;
-                closeModal();
-                
-            }, 1500);
-        }
-
-        // Export departments to CSV
-        function exportDepartments() {
-            const headers = ["Name", "Code", "Manager", "Employees", "Active Employees", "Status", "Created Date"];
-            let csvContent = "data:text/csv;charset=utf-8,";
-            
-            csvContent += headers.join(",") + "\n";
-            
-            departments.forEach(dept => {
-                const rowData = [
-                    `"${dept.name}"`,
-                    `"${dept.code}"`,
-                    `"${dept.manager ? dept.manager.name : 'No Manager'}"`,
-                    dept.employee_count,
-                    dept.active_employees,
-                    dept.is_active ? "Active" : "Inactive",
-                    `"${dept.created_at}"`
-                ];
-                
-                csvContent += rowData.join(",") + "\n";
             });
-            
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `departments_export_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // Refresh data
-        function refreshData() {
-            loadDepartments();
-            showNotification('info', 'Department data refreshed successfully!');
         }
 
         // Close modal
@@ -1779,7 +1190,7 @@
             notification.className = `notification notification-${type}`;
             notification.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
                     <span>${message}</span>
                 </div>
                 <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer;">
@@ -1802,32 +1213,8 @@
             }, 5000);
         }
 
-        // Setup event listeners
-        function setupEventListeners() {
-            // Close modal when clicking outside
-            document.querySelectorAll('.modal').forEach(modal => {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        closeModal();
-                    }
-                });
-            });
-            
-            // Keyboard shortcuts
-            document.addEventListener('keydown', function(e) {
-                // Ctrl + F for search
-                if (e.ctrlKey && e.key === 'f') {
-                    e.preventDefault();
-                    const searchInput = document.getElementById('liveSearchDept') || document.getElementById('searchDept');
-                    if (searchInput) searchInput.focus();
-                }
-                // Escape to close modals
-                if (e.key === 'Escape') {
-                    closeModal();
-                }
-            });
-            
-            // Character count for description
+        // Setup character count for description
+        function setupCharCount() {
             const descriptionField = document.getElementById('deptDescription');
             const charCount = document.getElementById('descriptionCharCount');
             
@@ -1844,8 +1231,44 @@
                         charCount.style.color = 'var(--gray)';
                     }
                 });
+                
+                // Trigger initial count
+                descriptionField.dispatchEvent(new Event('input'));
             }
         }
+
+        // Setup event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Close modal when clicking outside
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModal();
+                    }
+                });
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl + N to add new department
+                if (e.ctrlKey && e.key === 'n') {
+                    e.preventDefault();
+                    showAddDepartmentModal();
+                }
+                // Escape to close modals
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+                // F5 to refresh
+                if (e.key === 'F5') {
+                    e.preventDefault();
+                    window.location.reload();
+                }
+            });
+            
+            // Setup character count
+            setupCharCount();
+        });
     </script>
 </body>
 </html>
