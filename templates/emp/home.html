@@ -847,9 +847,9 @@
           <button class="btn btn-primary" onclick="showAddEmployeeModal()">
             <i class="fas fa-user-plus"></i> Add Employee
           </button>
-          <button class="btn btn-outline" onclick="showDepartmentModal()">
-            <i class="fas fa-building"></i> Manage Departments
-          </button>
+         <a href="{% url 'emp:manage_departments' %}" class="btn btn-outline" style="text-decoration: none;">
+    <i class="fas fa-building"></i> Manage Departments
+</a>
           <button class="btn btn-outline" onclick="exportData()">
             <i class="fas fa-download"></i> Export
           </button>
@@ -1777,9 +1777,7 @@ function closeModal() {
     });
 }
 
-function showDepartmentModal() {
-    alert('Department management modal would open here');
-}
+
 
 function exportData() {
     // Create CSV data
