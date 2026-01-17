@@ -150,3 +150,40 @@ class CustomUserCreationForm(forms.ModelForm):
         return user
 
 
+# forms.py
+
+from django import forms
+from .models import Department, CustomUser
+
+class DepartmentForm(forms.ModelForm):
+    manager = forms.ModelChoiceField(
+        queryset=CustomUser.objects.filter(role__in=['manager', 'admin'], is_active=True),
+        required=False,
+        empty_label="Select Manager"
+    )
+    
+    class Meta:
+        model = Department
+        fields = ['name', 'code', 'description', 'manager', 'is_active']
+        
+    def clean_code(self):
+        code = self.cleaned_data.get('code')
+        if code:
+            code = code.upper()  # Convert to uppercase
+            # Check for uniqueness (excluding current instance if editing)
+            qs = Department.objects.filter(code=code)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError('Department code already exists.')
+        return code
+    
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        # Check for uniqueness (excluding current instance if editing)
+        qs = Department.objects.filter(name=name)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('Department name already exists.')
+        return name
