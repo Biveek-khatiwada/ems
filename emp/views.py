@@ -10,6 +10,7 @@ from django.contrib import messages
 from emp.forms import DepartmentForm
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 
 def home_page(request):
     try:
@@ -115,6 +116,192 @@ def home_page(request):
             'page_obj': None,
         }
         return render(request, 'emp/home.html', context)
+
+
+@login_required
+def edit_employee(request, employee_id):
+    if request.method == 'POST':
+        try:
+            # Get the employee instance
+            employee = CustomUser.objects.get(id=employee_id)
+            user = employee.user
+            
+            # Get form data
+            data = request.POST
+            errors = {}
+            
+            # Validate email
+            email = data.get('email', '').strip()
+            if email:
+                # Check if email is already taken by another user
+                if User.objects.filter(email=email).exclude(id=user.id).exists():
+                    errors['email'] = ['Email is already in use by another account.']
+                else:
+                    user.email = email
+            
+            # Update user fields
+            user.first_name = data.get('first_name', '').strip()
+            user.last_name = data.get('last_name', '').strip()
+            
+            # Update phone number (check uniqueness)
+            phone_number = data.get('phone_number', '').strip()
+            if phone_number:
+                try:
+                    phone_num = int(phone_number)
+                    if CustomUser.objects.filter(phone_number=phone_num).exclude(id=employee_id).exists():
+                        errors['phone_number'] = ['Phone number is already in use by another employee.']
+                    else:
+                        employee.phone_number = phone_num
+                except ValueError:
+                    errors['phone_number'] = ['Please enter a valid phone number.']
+            
+            # Update department
+            department_id = data.get('department', '').strip()
+            if department_id:
+                try:
+                    department = Department.objects.get(id=department_id)
+                    employee.department = department
+                except Department.DoesNotExist:
+                    pass
+            
+            # Update address
+            address = data.get('address', '').strip()
+            if address:
+                if len(address) > 100:
+                    errors['address'] = ['Address must be 100 characters or less.']
+                else:
+                    employee.address = address
+            
+            # Update role
+            role = data.get('role', 'employee')
+            if role in ['employee', 'manager', 'admin']:
+                employee.role = role
+            
+            # Update status
+            employee.is_active = data.get('is_active') == 'on'
+            
+            # Update password if provided
+            password1 = data.get('password1', '').strip()
+            password2 = data.get('password2', '').strip()
+            if password1 and password2:
+                if password1 == password2:
+                    user.set_password(password1)
+                else:
+                    errors['password1'] = ['Passwords do not match.']
+            
+            # If there are errors, return them
+            if errors:
+                return JsonResponse({
+                    'success': False,
+                    'errors': errors
+                }, status=400)
+            
+            # Save changes
+            user.save()
+            employee.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Employee updated successfully!',
+                'employee': {
+                    'id': str(employee.id),
+                    'name': user.get_full_name() or user.username,
+                    'username': user.username,
+                    'email': user.email,
+                    'phone': str(employee.phone_number),
+                    'department': employee.department.name if employee.department else 'No Department',
+                    'role': employee.get_role_display(),
+                    'status': 'Active' if employee.is_active else 'Inactive',
+                    'avatar_url': f'https://ui-avatars.com/api/?name={user.get_full_name() or user.username}&background=4361ee&color=fff&size=45'
+                }
+            })
+            
+        except CustomUser.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'errors': {'__all__': ['Employee not found.']}
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'errors': {'__all__': [str(e)]}
+            }, status=500)
+    
+    elif request.method == 'GET':
+        
+        try:
+            employee = CustomUser.objects.get(id=employee_id)
+            user = employee.user
+            
+            return JsonResponse({
+                'success': True,
+                'employee': {
+                    'id': str(employee.id),
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'phone_number': str(employee.phone_number),
+                    'department_id': str(employee.department.id) if employee.department else '',
+                    'address': employee.address,
+                    'role': employee.role,
+                    'is_active': employee.is_active
+                }
+            })
+        except CustomUser.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Employee not found'
+            }, status=404)
+
+@login_required
+def delete_employee(request, employee_id):
+    if request.method == 'POST':
+        try:
+            employee = CustomUser.objects.get(id=employee_id)
+            user = employee.user
+            
+            # Get employee name for the message
+            employee_name = user.get_full_name() or user.username
+            
+            # Delete the employee
+            employee.delete()
+            user.delete()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Employee "{employee_name}" deleted successfully!'
+            })
+            
+        except CustomUser.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Employee not found'
+            }, status=404)
+
+@login_required
+def toggle_employee_status(request, employee_id):
+    if request.method == 'POST':
+        try:
+            employee = CustomUser.objects.get(id=employee_id)
+            
+            # Toggle the status
+            employee.is_active = not employee.is_active
+            employee.save()
+            
+            action = "activated" if employee.is_active else "deactivated"
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Employee {action} successfully!',
+                'is_active': employee.is_active
+            })
+            
+        except CustomUser.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Employee not found'
+            }, status=404)
     
 def add_employee(request):
     """
