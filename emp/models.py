@@ -177,3 +177,13 @@ class CustomUser(models.Model):
         """ check if user is a manager """
         return self.role =='manager' and hasattr(self, 'department') and self.department is not None
     
+    def can_edit_employee(self, employee):
+        """ Check if the user can edit the given employee """
+        if self.is_superadmin:
+            return True
+        if self.is_department_manager:
+            return (
+                employee.department == self.department and
+                employee !='admin'
+            )
+        return self.id == employee.id
