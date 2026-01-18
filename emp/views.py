@@ -647,11 +647,30 @@ def delete_employee(request, employee_id):
             'error': 'Method not allowed'
         }, status=405)
         
+# In views.py - update toggle_employee_status function
 @login_required
 def toggle_employee_status(request, employee_id):
     if request.method == 'POST':
         try:
+            # Get current user's profile
+            current_user_profile = CustomUser.objects.get(user=request.user)
+            
+            # Get the employee
             employee = CustomUser.objects.get(id=employee_id)
+            
+            # Check permissions
+            if not current_user_profile.can_edit_employee(employee):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'You do not have permission to modify this employee'
+                }, status=403)
+            
+            # Prevent modifying yourself if not super admin
+            if employee.id == current_user_profile.id and not current_user_profile.is_superadmin:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'You cannot modify your own status'
+                }, status=400)
             
             # Toggle the status
             employee.is_active = not employee.is_active
