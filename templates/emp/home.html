@@ -2124,14 +2124,11 @@ async function deleteEmployee(employeeId) {
     }
 }
 
-// Function to refresh stats without full page reload
+
 async function refreshStats() {
     try {
-        // You can implement this to update stats without full reload
-        // For now, we'll just show a notification
-        showNotification('info', 'Employee deleted. Page will refresh to update statistics.');
         
-        // Refresh the page after 2 seconds
+        showNotification('info', 'Employee deleted. Page will refresh to update statistics.');
         setTimeout(() => {
             window.location.reload();
         }, 2000);
