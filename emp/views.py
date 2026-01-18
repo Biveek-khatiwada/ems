@@ -154,139 +154,323 @@ def home_page(request):
 
 @login_required
 def edit_employee(request, employee_id):
-    if request.method == 'POST':
-        try:
-            # Get the employee instance
-            employee = CustomUser.objects.get(id=employee_id)
-            user = employee.user
-            
-            # Get form data
-            data = request.POST
-            errors = {}
-            
-            # Validate email
-            email = data.get('email', '').strip()
-            if email:
-                # Check if email is already taken by another user
-                if User.objects.filter(email=email).exclude(id=user.id).exists():
-                    errors['email'] = ['Email is already in use by another account.']
-                else:
-                    user.email = email
-            
-            # Update user fields
-            user.first_name = data.get('first_name', '').strip()
-            user.last_name = data.get('last_name', '').strip()
-            
-            # Update phone number (check uniqueness)
-            phone_number = data.get('phone_number', '').strip()
-            if phone_number:
-                try:
-                    phone_num = int(phone_number)
-                    if CustomUser.objects.filter(phone_number=phone_num).exclude(id=employee_id).exists():
-                        errors['phone_number'] = ['Phone number is already in use by another employee.']
-                    else:
-                        employee.phone_number = phone_num
-                except ValueError:
-                    errors['phone_number'] = ['Please enter a valid phone number.']
-            
-            # Update department
-            department_id = data.get('department', '').strip()
-            if department_id:
-                try:
-                    department = Department.objects.get(id=department_id)
-                    employee.department = department
-                except Department.DoesNotExist:
-                    pass
-            
-            # Update address
-            address = data.get('address', '').strip()
-            if address:
-                if len(address) > 100:
-                    errors['address'] = ['Address must be 100 characters or less.']
-                else:
-                    employee.address = address
-            
-            # Update role
-            role = data.get('role', 'employee')
-            if role in ['employee', 'manager', 'admin']:
-                employee.role = role
-            
-            # Update status
-            employee.is_active = data.get('is_active') == 'on'
-            
-            # Update password if provided
-            password1 = data.get('password1', '').strip()
-            password2 = data.get('password2', '').strip()
-            if password1 and password2:
-                if password1 == password2:
-                    user.set_password(password1)
-                else:
-                    errors['password1'] = ['Passwords do not match.']
-            
-            # If there are errors, return them
-            if errors:
-                return JsonResponse({
-                    'success': False,
-                    'errors': errors
-                }, status=400)
-            
-            # Save changes
-            user.save()
-            employee.save()
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Employee updated successfully!',
-                'employee': {
-                    'id': str(employee.id),
-                    'name': user.get_full_name() or user.username,
-                    'username': user.username,
-                    'email': user.email,
-                    'phone': str(employee.phone_number),
-                    'department': employee.department.name if employee.department else 'No Department',
-                    'role': employee.get_role_display(),
-                    'status': 'Active' if employee.is_active else 'Inactive',
-                    'avatar_url': f'https://ui-avatars.com/api/?name={user.get_full_name() or user.username}&background=4361ee&color=fff&size=45'
-                }
-            })
-            
-        except CustomUser.DoesNotExist:
-            return JsonResponse({
-                'success': False,
-                'errors': {'__all__': ['Employee not found.']}
-            }, status=404)
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'errors': {'__all__': [str(e)]}
-            }, status=500)
-    
-    elif request.method == 'GET':
+    try:
+        # Get current user's profile
+        current_user_profile = CustomUser.objects.get(user=request.user)
         
-        try:
-            employee = CustomUser.objects.get(id=employee_id)
-            user = employee.user
-            
-            return JsonResponse({
-                'success': True,
-                'employee': {
-                    'id': str(employee.id),
-                    'username': user.username,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'phone_number': str(employee.phone_number),
-                    'department_id': str(employee.department.id) if employee.department else '',
-                    'address': employee.address,
-                    'role': employee.role,
-                    'is_active': employee.is_active
-                }
-            })
-        except CustomUser.DoesNotExist:
+        # Get the employee to edit
+        employee_to_edit = CustomUser.objects.get(id=employee_id)
+        
+        # Check if current user has permission to view/edit this employee
+        if not can_user_edit_employee(current_user_profile, employee_to_edit):
             return JsonResponse({
                 'success': False,
-                'error': 'Employee not found'
-            }, status=404)
+                'error': 'You do not have permission to edit this employee'
+            }, status=403)
+        
+        if request.method == 'POST':
+            return handle_edit_post(request, current_user_profile, employee_to_edit)
+        
+        elif request.method == 'GET':
+            return handle_edit_get(employee_to_edit, current_user_profile)
+            
+    except CustomUser.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Employee not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Internal server error: {str(e)}'
+        }, status=500)
+
+
+def can_user_edit_employee(current_user, employee_to_edit):
+    """
+    Check if the current user has permission to edit the given employee
+    """
+    # Super admin can edit anyone
+    if current_user.is_superadmin:
+        return True
+    
+    # User can always edit their own profile
+    if current_user.id == employee_to_edit.id:
+        return True
+    
+    # Department manager can edit employees in their department
+    if current_user.is_department_manager:
+        return (
+            employee_to_edit.department == current_user.department and 
+            employee_to_edit.role != 'admin'  # Managers can't edit admins
+        )
+    
+    return False
+
+
+def get_allowed_fields_for_user(current_user, employee_to_edit):
+    """
+    Return which fields the current user is allowed to edit
+    """
+    allowed_fields = {
+        'email': False,
+        'first_name': False,
+        'last_name': False,
+        'phone_number': False,
+        'department': False,
+        'address': False,
+        'role': False,
+        'is_active': False,
+        'password': False
+    }
+    
+    # Super admin can edit everything
+    if current_user.is_superadmin:
+        for field in allowed_fields:
+            allowed_fields[field] = True
+        return allowed_fields
+    
+    # User editing their own profile
+    if current_user.id == employee_to_edit.id:
+        allowed_fields['email'] = True
+        allowed_fields['first_name'] = True
+        allowed_fields['last_name'] = True
+        allowed_fields['phone_number'] = True
+        allowed_fields['address'] = True
+        allowed_fields['password'] = True
+        return allowed_fields
+    
+    # Department manager editing employees in their department
+    if current_user.is_department_manager and employee_to_edit.department == current_user.department:
+        # Managers can edit basic info but not role or admin status
+        allowed_fields['email'] = True
+        allowed_fields['first_name'] = True
+        allowed_fields['last_name'] = True
+        allowed_fields['phone_number'] = True
+        allowed_fields['address'] = True
+        allowed_fields['is_active'] = True
+        # Managers can change department only within their own department hierarchy
+        allowed_fields['department'] = False  # Can't change department
+        allowed_fields['role'] = False  # Can't change role (except maybe to/from manager?)
+        return allowed_fields
+    
+    return allowed_fields
+
+
+def handle_edit_post(request, current_user_profile, employee):
+    """
+    Handle POST request for editing employee
+    """
+    user = employee.user
+    data = request.POST
+    errors = {}
+    
+    # Get allowed fields for this user
+    allowed_fields = get_allowed_fields_for_user(current_user_profile, employee)
+    
+    # Validate email (if allowed)
+    if allowed_fields['email']:
+        email = data.get('email', '').strip()
+        if email:
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                errors['email'] = ['Email is already in use by another account.']
+            else:
+                user.email = email
+    
+    # Update user fields (if allowed)
+    if allowed_fields['first_name']:
+        user.first_name = data.get('first_name', '').strip()
+    
+    if allowed_fields['last_name']:
+        user.last_name = data.get('last_name', '').strip()
+    
+    # Update phone number (if allowed)
+    if allowed_fields['phone_number']:
+        phone_number = data.get('phone_number', '').strip()
+        if phone_number:
+            try:
+                phone_num = int(phone_number)
+                if CustomUser.objects.filter(phone_number=phone_num).exclude(id=employee.id).exists():
+                    errors['phone_number'] = ['Phone number is already in use by another employee.']
+                else:
+                    employee.phone_number = phone_num
+            except ValueError:
+                errors['phone_number'] = ['Please enter a valid phone number.']
+    
+    # Update department (if allowed and only for super admin)
+    if allowed_fields['department'] and current_user_profile.is_superadmin:
+        department_id = data.get('department', '').strip()
+        if department_id:
+            try:
+                department = Department.objects.get(id=department_id)
+                employee.department = department
+                
+                # If employee is a manager and their department changed, 
+                # check if they should remain manager
+                if employee.role == 'manager' and employee.department != department:
+                    # Remove manager role if department changed
+                    employee.role = 'employee'
+            except Department.DoesNotExist:
+                errors['department'] = ['Department does not exist.']
+    
+    # Update address (if allowed)
+    if allowed_fields['address']:
+        address = data.get('address', '').strip()
+        if address:
+            if len(address) > 100:
+                errors['address'] = ['Address must be 100 characters or less.']
+            else:
+                employee.address = address
+    
+    # Update role (only super admin can change roles)
+    if allowed_fields['role'] and current_user_profile.is_superadmin:
+        role = data.get('role', 'employee')
+        if role in ['employee', 'manager', 'admin']:
+            employee.role = role
+            
+            # Special handling for manager role changes
+            if role == 'manager':
+                # Ensure manager has a department
+                if not employee.department:
+                    errors['role'] = ['Manager must be assigned to a department.']
+                else:
+                    # Check if this department already has a manager
+                    existing_manager = CustomUser.objects.filter(
+                        department=employee.department,
+                        role='manager',
+                        is_active=True
+                    ).exclude(id=employee.id).first()
+                    
+                    if existing_manager:
+                        errors['role'] = [f'Department {employee.department.name} already has a manager ({existing_manager.user.get_full_name()}).']
+    
+    # Update status (if allowed)
+    if allowed_fields['is_active']:
+        employee.is_active = data.get('is_active') == 'on'
+        
+        # Prevent deactivating yourself
+        if employee.id == current_user_profile.id and not employee.is_active:
+            errors['is_active'] = ['You cannot deactivate your own account.']
+    
+    # Update password (if allowed)
+    if allowed_fields['password']:
+        password1 = data.get('password1', '').strip()
+        password2 = data.get('password2', '').strip()
+        if password1 and password2:
+            if password1 == password2:
+                user.set_password(password1)
+            else:
+                errors['password1'] = ['Passwords do not match.']
+    
+    # Check for unauthorized field edits
+    unauthorized_fields = []
+    if not allowed_fields['email'] and 'email' in data:
+        unauthorized_fields.append('email')
+    if not allowed_fields['first_name'] and 'first_name' in data:
+        unauthorized_fields.append('first_name')
+    if not allowed_fields['last_name'] and 'last_name' in data:
+        unauthorized_fields.append('last_name')
+    if not allowed_fields['phone_number'] and 'phone_number' in data:
+        unauthorized_fields.append('phone_number')
+    if not allowed_fields['department'] and 'department' in data:
+        unauthorized_fields.append('department')
+    if not allowed_fields['address'] and 'address' in data:
+        unauthorized_fields.append('address')
+    if not allowed_fields['role'] and 'role' in data:
+        unauthorized_fields.append('role')
+    if not allowed_fields['is_active'] and 'is_active' in data:
+        unauthorized_fields.append('is_active')
+    if not allowed_fields['password'] and ('password1' in data or 'password2' in data):
+        unauthorized_fields.append('password')
+    
+    if unauthorized_fields:
+        errors['__all__'] = [f'You are not authorized to modify: {", ".join(unauthorized_fields)}']
+    
+    # If there are errors, return them
+    if errors:
+        return JsonResponse({
+            'success': False,
+            'errors': errors
+        }, status=400)
+    
+    # Save changes
+    user.save()
+    employee.save()
+    
+    # If employee was made a manager, ensure they're the only active manager in that department
+    if employee.role == 'manager' and employee.is_active and employee.department:
+        # Deactivate other managers in the same department
+        CustomUser.objects.filter(
+            department=employee.department,
+            role='manager',
+            is_active=True
+        ).exclude(id=employee.id).update(
+            role='employee'
+        )
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Employee updated successfully!',
+        'employee': {
+            'id': str(employee.id),
+            'name': user.get_full_name() or user.username,
+            'username': user.username,
+            'email': user.email,
+            'phone': str(employee.phone_number),
+            'department': employee.department.name if employee.department else 'No Department',
+            'department_id': str(employee.department.id) if employee.department else '',
+            'role': employee.get_role_display(),
+            'role_value': employee.role,
+            'status': 'Active' if employee.is_active else 'Inactive',
+            'avatar_url': f'https://ui-avatars.com/api/?name={user.get_full_name() or user.username}&background=4361ee&color=fff&size=45'
+        }
+    })
+
+
+def handle_edit_get(employee, current_user_profile):
+    """
+    Handle GET request for editing employee
+    """
+    user = employee.user
+    
+    # Get allowed fields to determine what to return
+    allowed_fields = get_allowed_fields_for_user(current_user_profile, employee)
+    
+    # Prepare response data based on permissions
+    response_data = {
+        'id': str(employee.id),
+        'username': user.username,
+        'is_active': employee.is_active,
+        'allowed_fields': allowed_fields  # Send allowed fields to frontend
+    }
+    
+    # Only include fields the user is allowed to edit
+    if allowed_fields['email']:
+        response_data['email'] = user.email
+    
+    if allowed_fields['first_name']:
+        response_data['first_name'] = user.first_name or ''
+    
+    if allowed_fields['last_name']:
+        response_data['last_name'] = user.last_name or ''
+    
+    if allowed_fields['phone_number']:
+        response_data['phone_number'] = str(employee.phone_number)
+    
+    if allowed_fields['department']:
+        response_data['department_id'] = str(employee.department.id) if employee.department else ''
+    
+    if allowed_fields['address']:
+        response_data['address'] = employee.address or ''
+    
+    if allowed_fields['role']:
+        response_data['role'] = employee.role
+    
+    return JsonResponse({
+        'success': True,
+        'employee': response_data
+    })
+            
 @csrf_exempt
 def delete_employee(request, employee_id):
     if request.method == 'POST':
