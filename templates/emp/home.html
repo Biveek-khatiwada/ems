@@ -1108,26 +1108,29 @@
                   </div>
                 </td>
                 <td>
-                  <div class="action-buttons">
-                    <button class="btn btn-primary btn-xs btn-icon" onclick="viewEmployee('{{ emp.id }}')" title="View">
-                      <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-outline btn-xs btn-icon" onclick="editEmployee('{{ emp.id }}')" title="Edit">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline btn-xs btn-icon" onclick="sendMessage('{{ emp.id }}')" title="Message">
-                      <i class="fas fa-envelope"></i>
-                    </button>
-                    {% if emp.is_active %}
-                    <button class="btn btn-outline btn-xs btn-icon" onclick="toggleEmployeeStatus('{{ emp.id }}', 'deactivate')" title="Deactivate">
-                      <i class="fas fa-user-slash"></i>
-                    </button>
-                    {% else %}
-                    <button class="btn btn-success btn-xs btn-icon" onclick="toggleEmployeeStatus('{{ emp.id }}', 'activate')" title="Activate">
-                      <i class="fas fa-user-check"></i>
-                    </button>
-                    {% endif %}
-                  </div>
+                 <div class="action-buttons">
+    <button class="btn btn-primary btn-xs btn-icon" onclick="viewEmployee('{{ emp.id }}')" title="View">
+        <i class="fas fa-eye"></i>
+    </button>
+    <button class="btn btn-outline btn-xs btn-icon" onclick="editEmployee('{{ emp.id }}')" title="Edit">
+        <i class="fas fa-edit"></i>
+    </button>
+    <button class="btn btn-outline btn-xs btn-icon" onclick="sendMessage('{{ emp.id }}')" title="Message">
+        <i class="fas fa-envelope"></i>
+    </button>
+    {% if emp.is_active %}
+    <button class="btn btn-outline btn-xs btn-icon" onclick="toggleEmployeeStatus('{{ emp.id }}', 'deactivate')" title="Deactivate">
+        <i class="fas fa-user-slash"></i>
+    </button>
+    {% else %}
+    <button class="btn btn-success btn-xs btn-icon" onclick="toggleEmployeeStatus('{{ emp.id }}', 'activate')" title="Activate">
+        <i class="fas fa-user-check"></i>
+    </button>
+    {% endif %}
+    <button class="btn btn-outline btn-xs btn-icon" onclick="deleteEmployee('{{ emp.id }}')" title="Delete" style="color: var(--danger); border-color: var(--danger);">
+        <i class="fas fa-trash"></i>
+    </button>
+</div>
                 </td>
               </tr>
               {% empty %}
@@ -1444,7 +1447,209 @@
     </div>
   </div>
 </div>
-    <script>
+<!-- Edit Employee Modal -->
+<div id="editEmployeeModal" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-edit"></i> Edit Employee</h3>
+      <button class="close-modal" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="editEmployeeForm" method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="employee_id" id="edit_employee_id">
+        
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+          <!-- Username (readonly) -->
+          <div class="form-group">
+            <label for="edit_username" style="display: block; margin-bottom: 5px; font-weight: 500;">
+              Username
+            </label>
+            <input 
+              type="text" 
+              id="edit_username" 
+              class="form-control"
+              readonly
+              style="background-color: var(--light); cursor: not-allowed;"
+            >
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="edit_email" style="display: block; margin-bottom: 5px; font-weight: 500;">
+              Email <span style="color: var(--danger);">*</span>
+            </label>
+            <input 
+              type="email" 
+              name="email" 
+              id="edit_email" 
+              class="form-control"
+              required
+            >
+            <div id="edit_email-errors" class="error-messages"></div>
+          </div>
+
+          <!-- First Name -->
+          <div class="form-group">
+            <label for="edit_first_name" style="display: block; margin-bottom: 5px; font-weight: 500;">
+              First Name
+            </label>
+            <input 
+              type="text" 
+              name="first_name" 
+              id="edit_first_name" 
+              class="form-control"
+            >
+          </div>
+
+          <!-- Last Name -->
+          <div class="form-group">
+            <label for="edit_last_name" style="display: block; margin-bottom: 5px; font-weight: 500;">
+              Last Name
+            </label>
+            <input 
+              type="text" 
+              name="last_name" 
+              id="edit_last_name" 
+              class="form-control"
+            >
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px;">
+          <!-- Phone Number -->
+          <div class="form-group">
+            <label for="edit_phone_number" style="display: block; margin-bottom: 5px; font-weight: 500;">
+              Phone Number <span style="color: var(--danger);">*</span>
+            </label>
+            <input 
+              type="number" 
+              name="phone_number" 
+              id="edit_phone_number" 
+              class="form-control"
+              required
+              min="1000000000"
+              max="999999999999999"
+            >
+            <div id="edit_phone-errors" class="error-messages"></div>
+          </div>
+
+          <!-- Department -->
+          <div class="form-group">
+            <label for="edit_department" style="display: block; margin-bottom: 5px; font-weight: 500;">
+              Department
+            </label>
+            <select name="department" id="edit_department" class="form-control">
+              <option value="">Select Department</option>
+              {% for dept in departments %}
+                <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="edit_address" style="display: block; margin-bottom: 5px; font-weight: 500;">
+            Address <span style="color: var(--danger);">*</span>
+          </label>
+          <textarea 
+            name="address" 
+            id="edit_address" 
+            class="form-control" 
+            rows="3" 
+            maxlength="100" 
+            required
+          ></textarea>
+          <div class="char-count" style="display: flex; justify-content: space-between; margin-top: 5px;">
+            <small style="color: var(--gray); font-size: 0.85rem;">Maximum 100 characters</small>
+            <span id="edit_addressCharCount" style="font-size: 0.85rem; color: var(--gray);">0/100</span>
+          </div>
+          <div id="edit_address-errors" class="error-messages"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
+          <!-- Role -->
+          <div class="form-group">
+            <label for="edit_role" style="display: block; margin-bottom: 5px; font-weight: 500;">
+              Role <span style="color: var(--danger);">*</span>
+            </label>
+            <select name="role" id="edit_role" class="form-control" required>
+              <option value="employee">Employee</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+
+          <!-- Status -->
+          <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 25px;">
+            <input 
+              type="checkbox" 
+              name="is_active" 
+              id="edit_is_active" 
+              style="width: 18px; height: 18px; accent-color: var(--primary);"
+            >
+            <label for="edit_is_active" style="font-weight: 500;">
+              Active Account
+            </label>
+          </div>
+        </div>
+
+        <!-- Password Update Section -->
+        <div style="margin-bottom: 30px; padding: 20px; background: var(--light); border-radius: var(--radius);">
+          <h4 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-key"></i> Change Password (Optional)
+          </h4>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+            <div class="form-group">
+              <label for="edit_password1" style="display: block; margin-bottom: 5px; font-weight: 500;">
+                New Password
+              </label>
+              <input 
+                type="password" 
+                name="password1" 
+                id="edit_password1" 
+                class="form-control"
+                placeholder="Leave empty to keep current password"
+              >
+            </div>
+            <div class="form-group">
+              <label for="edit_password2" style="display: block; margin-bottom: 5px; font-weight: 500;">
+                Confirm Password
+              </label>
+              <input 
+                type="password" 
+                name="password2" 
+                id="edit_password2" 
+                class="form-control"
+                placeholder="Confirm new password"
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Avatar Preview -->
+        <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: var(--light); border-radius: var(--radius);">
+          <div id="edit_avatarPreview" style="width: 100px; height: 100px; margin: 0 auto 15px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: white;">
+            <i class="fas fa-user"></i>
+          </div>
+          <small style="color: var(--gray); font-size: 0.85rem;">
+            Avatar preview
+          </small>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitEditEmployeeBtn">
+            <span class="btn-text">Update Employee</span>
+            <div class="loader" style="display: none; width: 20px; height: 20px; border: 3px solid white; border-top: 3px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+  <script>
       let selectedEmployeeId = null;
 
 // Get CSRF token helper function
@@ -1545,7 +1750,7 @@ function showNotification(type, message) {
     }, 5000);
 }
 
-// Update avatar preview
+// Update avatar preview for add form
 function updateAvatarPreview() {
     const firstName = document.getElementById('id_first_name')?.value || '';
     const lastName = document.getElementById('id_last_name')?.value || '';
@@ -1577,10 +1782,62 @@ function updateAvatarPreview() {
     }
 }
 
-// Update character count for address
+// Update avatar preview for edit form
+function updateEditAvatarPreview() {
+    const firstName = document.getElementById('edit_first_name')?.value || '';
+    const lastName = document.getElementById('edit_last_name')?.value || '';
+    const fullName = `${firstName} ${lastName}`.trim() || 
+                     document.getElementById('edit_username')?.value || 'User';
+    
+    const avatarPreview = document.getElementById('edit_avatarPreview');
+    
+    if (avatarPreview) {
+        const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        avatarPreview.innerHTML = `<span style="font-weight: bold; font-size: 2rem;">${initials}</span>`;
+        
+        // Set consistent background color
+        const colors = [
+            'linear-gradient(135deg, #4361ee 0%, #3a56d4 100%)',
+            'linear-gradient(135deg, #7209b7 0%, #5e0896 100%)',
+            'linear-gradient(135deg, #06d6a0 0%, #05c190 100%)',
+            'linear-gradient(135deg, #ef476f 0%, #e6355e 100%)',
+            'linear-gradient(135deg, #4cc9f0 0%, #3ab7e0 100%)',
+        ];
+        
+        let hash = 0;
+        for (let i = 0; i < fullName.length; i++) {
+            hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const colorIndex = Math.abs(hash) % colors.length;
+        
+        avatarPreview.style.background = colors[colorIndex];
+    }
+}
+
+// Update character count for address in add form
 function updateCharCount() {
     const addressField = document.getElementById('id_address');
     const charCount = document.getElementById('addressCharCount');
+    
+    if (addressField && charCount) {
+        const currentLength = addressField.value.length;
+        const maxLength = 100;
+        charCount.textContent = `${currentLength}/${maxLength}`;
+        
+        if (currentLength > maxLength * 0.9) {
+            charCount.style.color = 'var(--warning)';
+        } else if (currentLength > maxLength) {
+            charCount.style.color = 'var(--danger)';
+        } else {
+            charCount.style.color = 'var(--gray)';
+        }
+    }
+}
+
+// Update character count for address in edit form
+function updateEditCharCount() {
+    const addressField = document.getElementById('edit_address');
+    const charCount = document.getElementById('edit_addressCharCount');
     
     if (addressField && charCount) {
         const currentLength = addressField.value.length;
@@ -1664,6 +1921,7 @@ document.getElementById('live-search')?.addEventListener('input', function(e) {
     });
 });
 
+// View employee details
 async function viewEmployee(employeeId) {
     selectedEmployeeId = employeeId;
     const modal = document.getElementById('employeeModal');
@@ -1737,26 +1995,226 @@ async function viewEmployee(employeeId) {
     }
 }
 
+// Toggle employee status (activate/deactivate)
 async function toggleEmployeeStatus(employeeId, action) {
     if (confirm(`Are you sure you want to ${action} this employee?`)) {
         try {
-            // For now, just reload the page. You can implement actual API call later.
-            window.location.reload();
+            const response = await fetch(`/toggle-status/${employeeId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('success', data.message);
+                
+                // Update the row in the table
+                const row = document.querySelector(`tr[data-employee-id="${employeeId}"]`);
+                if (row) {
+                    const statusCell = row.querySelector('.badge-success, .badge-danger');
+                    const newStatus = data.is_active ? 'Active' : 'Inactive';
+                    const newStatusClass = data.is_active ? 'badge-success' : 'badge-danger';
+                    
+                    if (statusCell) {
+                        statusCell.className = `badge ${newStatusClass}`;
+                        statusCell.innerHTML = `<i class="fas fa-${data.is_active ? 'check' : 'times'}-circle"></i> ${newStatus}`;
+                    }
+                    
+                    // Update row class
+                    row.className = data.is_active ? 'active' : 'inactive';
+                    
+                    // Update the button
+                    const statusBtn = row.querySelector('.action-buttons').lastElementChild;
+                    if (statusBtn) {
+                        if (data.is_active) {
+                            statusBtn.className = 'btn btn-outline btn-xs btn-icon';
+                            statusBtn.innerHTML = '<i class="fas fa-user-slash"></i>';
+                            statusBtn.onclick = () => toggleEmployeeStatus(employeeId, 'deactivate');
+                            statusBtn.title = 'Deactivate';
+                        } else {
+                            statusBtn.className = 'btn btn-success btn-xs btn-icon';
+                            statusBtn.innerHTML = '<i class="fas fa-user-check"></i>';
+                            statusBtn.onclick = () => toggleEmployeeStatus(employeeId, 'activate');
+                            statusBtn.title = 'Activate';
+                        }
+                    }
+                }
+            } else {
+                showNotification('error', data.error || 'Failed to update status');
+            }
         } catch (error) {
-            alert('Failed to update employee status');
+            console.error('Error:', error);
+            showNotification('error', 'Failed to update employee status');
         }
     }
 }
 
-function editEmployee(employeeId) {
-    alert(`Edit employee ${employeeId} - This would open edit form`);
-    // Implement actual edit functionality
+// Delete employee
+async function deleteEmployee(employeeId) {
+    if (confirm('Are you sure you want to delete this employee? This action cannot be undone.')) {
+        try {
+            const response = await fetch(`/delete-employee/${employeeId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('success', data.message);
+                
+                // Remove the row from the table
+                const row = document.querySelector(`tr[data-employee-id="${employeeId}"]`);
+                if (row) {
+                    row.remove();
+                }
+                
+                // Refresh the page after 2 seconds to update stats
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                showNotification('error', data.error || 'Failed to delete employee');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showNotification('error', 'Failed to delete employee');
+        }
+    }
 }
 
+// Load employee data for editing
+async function editEmployee(employeeId) {
+    selectedEmployeeId = employeeId;
+    
+    try {
+        const response = await fetch(`/edit-employee/${employeeId}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const employee = data.employee;
+            
+            // Fill the form with employee data
+            document.getElementById('edit_employee_id').value = employee.id;
+            document.getElementById('edit_username').value = employee.username;
+            document.getElementById('edit_email').value = employee.email;
+            document.getElementById('edit_first_name').value = employee.first_name || '';
+            document.getElementById('edit_last_name').value = employee.last_name || '';
+            document.getElementById('edit_phone_number').value = employee.phone_number;
+            document.getElementById('edit_department').value = employee.department_id || '';
+            document.getElementById('edit_address').value = employee.address || '';
+            document.getElementById('edit_role').value = employee.role;
+            document.getElementById('edit_is_active').checked = employee.is_active;
+            
+            // Update character count
+            updateEditCharCount();
+            
+            // Update avatar preview
+            updateEditAvatarPreview();
+            
+            // Clear password fields
+            document.getElementById('edit_password1').value = '';
+            document.getElementById('edit_password2').value = '';
+            
+            // Clear any previous errors
+            document.querySelectorAll('#editEmployeeForm .error-messages').forEach(el => {
+                el.innerHTML = '';
+            });
+            document.querySelectorAll('#editEmployeeForm .form-control.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+            });
+            
+            // Show the edit modal
+            const modal = document.getElementById('editEmployeeModal');
+            modal.classList.add('active');
+            
+        } else {
+            showNotification('error', data.error || 'Failed to load employee data');
+        }
+    } catch (error) {
+        console.error('Error loading employee data:', error);
+        showNotification('error', 'Failed to load employee data');
+    }
+}
+
+// Update employee in table after edit
+function updateEmployeeInTable(employee) {
+    const row = document.querySelector(`tr[data-employee-id="${employee.id}"]`);
+    
+    if (!row) return;
+    
+    // Update employee info
+    const nameCell = row.querySelector('.employee-name');
+    const usernameCell = row.querySelector('.employee-username');
+    const emailCell = row.querySelector('.fa-envelope').parentNode;
+    const phoneCell = row.querySelector('.fa-phone').parentNode;
+    const deptCell = row.querySelector('.badge-primary, .badge-warning');
+    const roleCell = row.querySelector('.role-badge');
+    const statusCell = row.querySelector('.badge-success, .badge-danger');
+    const statusClass = employee.status === 'Active' ? 'badge-success' : 'badge-danger';
+    
+    if (nameCell) {
+        nameCell.textContent = employee.name;
+    }
+    
+    if (usernameCell) {
+        usernameCell.textContent = `@${employee.username}`;
+    }
+    
+    if (emailCell) {
+        emailCell.innerHTML = `<i class="fas fa-envelope"></i> ${employee.email}`;
+    }
+    
+    if (phoneCell) {
+        phoneCell.innerHTML = `<i class="fas fa-phone"></i> ${employee.phone}`;
+    }
+    
+    if (deptCell) {
+        deptCell.className = 'badge badge-primary';
+        deptCell.innerHTML = `<i class="fas fa-building"></i> ${employee.department}`;
+    }
+    
+    if (roleCell) {
+        roleCell.className = `role-badge role-${employee.role.toLowerCase()}`;
+        roleCell.innerHTML = `<i class="fas fa-user-tag"></i> ${employee.role}`;
+    }
+    
+    if (statusCell) {
+        statusCell.className = `badge ${statusClass}`;
+        statusCell.innerHTML = `<i class="fas fa-${employee.status === 'Active' ? 'check' : 'times'}-circle"></i> ${employee.status}`;
+    }
+    
+    // Update row class
+    row.className = employee.status === 'Active' ? 'active' : 'inactive';
+    
+    // Update avatar image
+    const avatarImg = row.querySelector('.employee-avatar');
+    if (avatarImg) {
+        avatarImg.src = employee.avatar_url;
+        avatarImg.alt = employee.name;
+    }
+}
+
+// Send message to employee (placeholder)
 function sendMessage(employeeId) {
     alert(`Send message to employee ${employeeId}`);
 }
 
+// Show add employee modal
 function showAddEmployeeModal() {
     const modal = document.getElementById('addEmployeeModal');
     modal.classList.add('active');
@@ -1771,14 +2229,14 @@ function showAddEmployeeModal() {
     }
 }
 
+// Close all modals
 function closeModal() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.classList.remove('active');
     });
 }
 
-
-
+// Export data to CSV
 function exportData() {
     // Create CSV data
     const rows = document.querySelectorAll('#employee-table-body tr:not([style*="display: none"])');
@@ -1818,10 +2276,12 @@ function exportData() {
     document.body.removeChild(link);
 }
 
+// Toggle view (placeholder)
 function toggleView() {
     alert('Grid view will be implemented in the next update');
 }
 
+// Refresh data
 function refreshData() {
     window.location.reload();
 }
@@ -1894,6 +2354,9 @@ function addEmployeeToTable(employee) {
                 <button class="btn btn-outline btn-xs btn-icon" onclick="toggleEmployeeStatus('${employee.id}', 'deactivate')" title="Deactivate">
                     <i class="fas fa-user-slash"></i>
                 </button>
+                <button class="btn btn-outline btn-xs btn-icon" onclick="deleteEmployee('${employee.id}')" title="Delete" style="color: var(--danger); border-color: var(--danger);">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         </td>
     `;
@@ -1950,6 +2413,60 @@ document.getElementById('addEmployeeForm')?.addEventListener('submit', async fun
             setTimeout(() => {
                 window.location.reload();
             }, 2000);
+            
+        } else {
+            // Show errors
+            showErrors(data.errors || {});
+            showNotification('error', 'Please correct the errors below.');
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('error', 'An error occurred. Please try again.');
+    } finally {
+        // Reset button state
+        if (btnText) btnText.style.display = 'inline';
+        if (loader) loader.style.display = 'none';
+        if (submitBtn) submitBtn.disabled = false;
+    }
+});
+
+// Handle edit form submission
+document.getElementById('editEmployeeForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = document.getElementById('submitEditEmployeeBtn');
+    const btnText = submitBtn?.querySelector('.btn-text');
+    const loader = submitBtn?.querySelector('.loader');
+    const employeeId = document.getElementById('edit_employee_id').value;
+    
+    // Show loading state
+    if (btnText) btnText.style.display = 'none';
+    if (loader) loader.style.display = 'block';
+    if (submitBtn) submitBtn.disabled = true;
+    
+    try {
+        const formData = new FormData(form);
+        
+        const response = await fetch(`/edit-employee/${employeeId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Success - close modal and show success message
+            closeModal();
+            showNotification('success', data.message || 'Employee updated successfully!');
+            
+            // Update the row in the table
+            updateEmployeeInTable(data.employee);
             
         } else {
             // Show errors
@@ -2058,7 +2575,7 @@ document.head.appendChild(style);
 
 // Add event listeners for real-time updates
 document.addEventListener('DOMContentLoaded', function() {
-    // Update avatar when name changes
+    // Update avatar when name changes in add form
     ['id_first_name', 'id_last_name'].forEach(id => {
         const field = document.getElementById(id);
         if (field) {
@@ -2066,11 +2583,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Update character count for address
+    // Update avatar when name changes in edit form
+    ['edit_first_name', 'edit_last_name'].forEach(id => {
+        const field = document.getElementById(id);
+        if (field) {
+            field.addEventListener('input', updateEditAvatarPreview);
+        }
+    });
+    
+    // Update character count for address in add form
     const addressField = document.getElementById('id_address');
     if (addressField) {
         addressField.addEventListener('input', updateCharCount);
         updateCharCount(); // Initial count
+    }
+    
+    // Update character count for address in edit form
+    const editAddressField = document.getElementById('edit_address');
+    if (editAddressField) {
+        editAddressField.addEventListener('input', updateEditCharCount);
+        updateEditCharCount(); // Initial count
     }
     
     // Password strength checker
@@ -2081,10 +2613,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Phone number validation
+    // Phone number validation for add form
     const phoneField = document.getElementById('id_phone_number');
     if (phoneField) {
         phoneField.addEventListener('input', function() {
+            // Remove non-numeric characters
+            this.value = this.value.replace(/\D/g, '');
+            
+            // Show warning if not within range
+            if (this.value.length < 10 || this.value.length > 15) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+    
+    // Phone number validation for edit form
+    const editPhoneField = document.getElementById('edit_phone_number');
+    if (editPhoneField) {
+        editPhoneField.addEventListener('input', function() {
             // Remove non-numeric characters
             this.value = this.value.replace(/\D/g, '');
             
