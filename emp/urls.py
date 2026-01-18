@@ -4,7 +4,12 @@ from . import views
 app_name = "emp"
 urlpatterns = [
     path('', views.home_page, name='home_page'),
+    # employees 
     path('add-employee/', views.add_employee, name='add_employee'),
+    path('edit-employee/<uuid:employee_id>/', views.edit_employee, name='edit_employee'),
+    path('delete-employee/<uuid:employee_id>/', views.delete_employee, name='delete_employee'),
+    path('toggle-status/<uuid:employee_id>/', views.toggle_employee_status, name='toggle_employee_status'),
+    # departments
     path('manage-departments/', views.manage_departments, name='manage_departments'),
     path('departments/get/<int:department_id>/', views.get_department_data, name='get_department_data'),
     path('departments/add/', views.add_department, name='add_department'),
