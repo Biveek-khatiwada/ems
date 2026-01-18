@@ -12,8 +12,16 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+
+
+@login_required
 def home_page(request):
-    try:
+        # Get current user's custom profile
+        try:
+            current_user_profile = CustomUser.objects.get(user=request.user)
+        except CustomUser.DoesNotExist:
+            return redirect('some_setup_page')
+        
         # Get filter parameters
         department_filter = request.GET.get('department', '')
         role_filter = request.GET.get('role', '')
@@ -21,11 +29,26 @@ def home_page(request):
         search_query = request.GET.get('q', '')
         page_number = request.GET.get('page', 1)
         
-        # Start with all employees
-        emp_details = CustomUser.objects.select_related('user', 'department').order_by('-created_at')
+        # Base queryset - filtered by user role
+        if current_user_profile.is_superadmin:
+            # Super admin sees all employees
+            emp_details = CustomUser.objects.select_related('user', 'department').order_by('-created_at')
+        elif current_user_profile.is_department_manager:
+            # Department manager sees only employees in their department
+            if current_user_profile.department:
+                emp_details = CustomUser.objects.filter(
+                    department=current_user_profile.department
+                ).select_related('user', 'department').order_by('-created_at')
+            else:
+                emp_details = CustomUser.objects.none()
+        else:
+            # Regular employee sees only themselves
+            emp_details = CustomUser.objects.filter(
+                id=current_user_profile.id
+            ).select_related('user', 'department').order_by('-created_at')
         
-        # Apply filters
-        if department_filter:
+        # Apply additional filters (only if user has permission)
+        if department_filter and current_user_profile.is_superadmin:
             emp_details = emp_details.filter(department_id=department_filter)
         
         if role_filter:
@@ -48,18 +71,45 @@ def home_page(request):
             )
         
         # Pagination
-        paginator = Paginator(emp_details, 10)  # 10 items per page
+        paginator = Paginator(emp_details, 10) 
         page_obj = paginator.get_page(page_number)
         
-        # Calculate statistics
-        total_employees = CustomUser.objects.count()
-        active_employees = CustomUser.objects.filter(is_active=True).count()
-        managers_count = CustomUser.objects.filter(role='manager').count()
-        
-        # Get departments - Use a different name for annotation
-        departments = Department.objects.annotate(
-            dept_employee_count=Count('employees')  # Changed from employee_count
-        ).order_by('name')
+        # Calculate statistics - also filtered by user role
+        if current_user_profile.is_superadmin:
+            total_employees = CustomUser.objects.count()
+            active_employees = CustomUser.objects.filter(is_active=True).count()
+            managers_count = CustomUser.objects.filter(role='manager').count()
+            
+            # Get all departments for super admin
+            departments = Department.objects.annotate(
+                dept_employee_count=Count('employees')
+            ).order_by('name')
+            
+        elif current_user_profile.is_department_manager:
+            if current_user_profile.department:
+                # Only show stats for manager's department
+                dept = current_user_profile.department
+                total_employees = dept.employees.count()
+                active_employees = dept.employees.filter(is_active=True).count()
+                managers_count = dept.employees.filter(role='manager').count()
+                
+                # Only show manager's department
+                departments = Department.objects.filter(
+                    id=current_user_profile.department.id
+                ).annotate(
+                    dept_employee_count=Count('employees')
+                )
+            else:
+                total_employees = 0
+                active_employees = 0
+                managers_count = 0
+                departments = Department.objects.none()
+        else:
+            # Regular employee - minimal stats
+            total_employees = 1
+            active_employees = 1 if current_user_profile.is_active else 0
+            managers_count = 0
+            departments = Department.objects.none()
         
         total_departments = departments.filter(is_active=True).count()
         
@@ -67,11 +117,14 @@ def home_page(request):
         active_percentage = round((active_employees / total_employees * 100) if total_employees > 0 else 0, 1)
         managers_percentage = round((managers_count / total_employees * 100) if total_employees > 0 else 0, 1)
         
-        # Calculate new hires this month
-        current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        new_hires_this_month = CustomUser.objects.filter(
-            created_at__gte=current_month
-        ).count()
+        # Calculate new hires this month (only for super admin)
+        if current_user_profile.is_superadmin:
+            current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            new_hires_this_month = CustomUser.objects.filter(
+                created_at__gte=current_month
+            ).count()
+        else:
+            new_hires_this_month = 0
         
         # Calculate average employees per department
         avg_employees_per_dept = round(total_employees / total_departments, 1) if total_departments > 0 else 0
@@ -94,29 +147,10 @@ def home_page(request):
             'selected_status': status_filter,
             'search_query': search_query,
             'page_obj': page_obj,
+            'current_user_profile': current_user_profile, 
         }
         
         return render(request, 'emp/home.html', context)
-    
-    except Exception as e:
-        print(f"Error in home_page: {e}")
-        context = {
-            'emp_details': [],
-            'emp_count': 0,
-            'current_time': datetime.datetime.now(),
-            'departments': Department.objects.all(),
-            'total_employees': 0,
-            'active_employees': 0,
-            'managers_count': 0,
-            'total_departments': 0,
-            'active_percentage': 0,
-            'managers_percentage': 0,
-            'new_hires_this_month': 0,
-            'avg_employees_per_dept': 0,
-            'page_obj': None,
-        }
-        return render(request, 'emp/home.html', context)
-
 
 @login_required
 def edit_employee(request, employee_id):
