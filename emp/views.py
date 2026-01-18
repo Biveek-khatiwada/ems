@@ -12,18 +12,8 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
-from django.db import transaction
-from django.conf import settings
-
-
-@login_required
 def home_page(request):
-        # Get current user's custom profile
-        try:
-            current_user_profile = CustomUser.objects.get(user=request.user)
-        except CustomUser.DoesNotExist:
-            return redirect('some_setup_page')
-        
+    try:
         # Get filter parameters
         department_filter = request.GET.get('department', '')
         role_filter = request.GET.get('role', '')
@@ -31,26 +21,11 @@ def home_page(request):
         search_query = request.GET.get('q', '')
         page_number = request.GET.get('page', 1)
         
-        # Base queryset - filtered by user role
-        if current_user_profile.is_superadmin:
-            # Super admin sees all employees
-            emp_details = CustomUser.objects.select_related('user', 'department').order_by('-created_at')
-        elif current_user_profile.is_department_manager:
-            # Department manager sees only employees in their department
-            if current_user_profile.department:
-                emp_details = CustomUser.objects.filter(
-                    department=current_user_profile.department
-                ).select_related('user', 'department').order_by('-created_at')
-            else:
-                emp_details = CustomUser.objects.none()
-        else:
-            # Regular employee sees only themselves
-            emp_details = CustomUser.objects.filter(
-                id=current_user_profile.id
-            ).select_related('user', 'department').order_by('-created_at')
+        # Start with all employees
+        emp_details = CustomUser.objects.select_related('user', 'department').order_by('-created_at')
         
-        # Apply additional filters (only if user has permission)
-        if department_filter and current_user_profile.is_superadmin:
+        # Apply filters
+        if department_filter:
             emp_details = emp_details.filter(department_id=department_filter)
         
         if role_filter:
@@ -73,45 +48,18 @@ def home_page(request):
             )
         
         # Pagination
-        paginator = Paginator(emp_details, 10) 
+        paginator = Paginator(emp_details, 10)  # 10 items per page
         page_obj = paginator.get_page(page_number)
         
-        # Calculate statistics - also filtered by user role
-        if current_user_profile.is_superadmin:
-            total_employees = CustomUser.objects.count()
-            active_employees = CustomUser.objects.filter(is_active=True).count()
-            managers_count = CustomUser.objects.filter(role='manager').count()
-            
-            # Get all departments for super admin
-            departments = Department.objects.annotate(
-                dept_employee_count=Count('employees')
-            ).order_by('name')
-            
-        elif current_user_profile.is_department_manager:
-            if current_user_profile.department:
-                # Only show stats for manager's department
-                dept = current_user_profile.department
-                total_employees = dept.employees.count()
-                active_employees = dept.employees.filter(is_active=True).count()
-                managers_count = dept.employees.filter(role='manager').count()
-                
-                # Only show manager's department
-                departments = Department.objects.filter(
-                    id=current_user_profile.department.id
-                ).annotate(
-                    dept_employee_count=Count('employees')
-                )
-            else:
-                total_employees = 0
-                active_employees = 0
-                managers_count = 0
-                departments = Department.objects.none()
-        else:
-            # Regular employee - minimal stats
-            total_employees = 1
-            active_employees = 1 if current_user_profile.is_active else 0
-            managers_count = 0
-            departments = Department.objects.none()
+        # Calculate statistics
+        total_employees = CustomUser.objects.count()
+        active_employees = CustomUser.objects.filter(is_active=True).count()
+        managers_count = CustomUser.objects.filter(role='manager').count()
+        
+        # Get departments - Use a different name for annotation
+        departments = Department.objects.annotate(
+            dept_employee_count=Count('employees')  # Changed from employee_count
+        ).order_by('name')
         
         total_departments = departments.filter(is_active=True).count()
         
@@ -119,14 +67,11 @@ def home_page(request):
         active_percentage = round((active_employees / total_employees * 100) if total_employees > 0 else 0, 1)
         managers_percentage = round((managers_count / total_employees * 100) if total_employees > 0 else 0, 1)
         
-        # Calculate new hires this month (only for super admin)
-        if current_user_profile.is_superadmin:
-            current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            new_hires_this_month = CustomUser.objects.filter(
-                created_at__gte=current_month
-            ).count()
-        else:
-            new_hires_this_month = 0
+        # Calculate new hires this month
+        current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        new_hires_this_month = CustomUser.objects.filter(
+            created_at__gte=current_month
+        ).count()
         
         # Calculate average employees per department
         avg_employees_per_dept = round(total_employees / total_departments, 1) if total_departments > 0 else 0
@@ -149,528 +94,201 @@ def home_page(request):
             'selected_status': status_filter,
             'search_query': search_query,
             'page_obj': page_obj,
-            'current_user_profile': current_user_profile, 
         }
         
         return render(request, 'emp/home.html', context)
+    
+    except Exception as e:
+        print(f"Error in home_page: {e}")
+        context = {
+            'emp_details': [],
+            'emp_count': 0,
+            'current_time': datetime.datetime.now(),
+            'departments': Department.objects.all(),
+            'total_employees': 0,
+            'active_employees': 0,
+            'managers_count': 0,
+            'total_departments': 0,
+            'active_percentage': 0,
+            'managers_percentage': 0,
+            'new_hires_this_month': 0,
+            'avg_employees_per_dept': 0,
+            'page_obj': None,
+        }
+        return render(request, 'emp/home.html', context)
+
 
 @login_required
 def edit_employee(request, employee_id):
-    try:
-        # Get current user's profile
-        current_user_profile = CustomUser.objects.get(user=request.user)
-        
-        # Get the employee to edit
-        employee_to_edit = CustomUser.objects.get(id=employee_id)
-        
-        # Check if current user has permission to view/edit this employee
-        if not can_user_edit_employee(current_user_profile, employee_to_edit):
-            return JsonResponse({
-                'success': False,
-                'error': 'You do not have permission to edit this employee'
-            }, status=403)
-        
-        if request.method == 'POST':
-            return handle_edit_post(request, current_user_profile, employee_to_edit)
-        
-        elif request.method == 'GET':
-            return handle_edit_get(employee_to_edit, current_user_profile)
-            
-    except CustomUser.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Employee not found'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Internal server error: {str(e)}'
-        }, status=500)
-
-
-def can_user_edit_employee(current_user, employee_to_edit):
-    """
-    Check if the current user has permission to edit the given employee
-    """
-    # Super admin can edit anyone
-    if current_user.is_superadmin:
-        return True
-    
-    # User can always edit their own profile
-    if current_user.id == employee_to_edit.id:
-        return True
-    
-    # Department manager can edit employees in their department
-    if current_user.is_department_manager:
-        return (
-            employee_to_edit.department == current_user.department and 
-            employee_to_edit.role != 'admin'  # Managers can't edit admins
-        )
-    
-    return False
-
-
-def get_allowed_fields_for_user(current_user, employee_to_edit):
-    """
-    Return which fields the current user is allowed to edit
-    """
-    allowed_fields = {
-        'email': False,
-        'first_name': False,
-        'last_name': False,
-        'phone_number': False,
-        'department': False,
-        'address': False,
-        'role': False,
-        'is_active': False,
-        'password': False
-    }
-    
-    # Super admin can edit everything
-    if current_user.is_superadmin:
-        for field in allowed_fields:
-            allowed_fields[field] = True
-        return allowed_fields
-    
-    # User editing their own profile
-    if current_user.id == employee_to_edit.id:
-        allowed_fields['email'] = True
-        allowed_fields['first_name'] = True
-        allowed_fields['last_name'] = True
-        allowed_fields['phone_number'] = True
-        allowed_fields['address'] = True
-        allowed_fields['password'] = True
-        return allowed_fields
-    
-    # Department manager editing employees in their department
-    if current_user.is_department_manager and employee_to_edit.department == current_user.department:
-        # Managers can edit basic info but not role or admin status
-        allowed_fields['email'] = True
-        allowed_fields['first_name'] = True
-        allowed_fields['last_name'] = True
-        allowed_fields['phone_number'] = True
-        allowed_fields['address'] = True
-        allowed_fields['is_active'] = True
-        # Managers can change department only within their own department hierarchy
-        allowed_fields['department'] = False  # Can't change department
-        allowed_fields['role'] = False  # Can't change role (except maybe to/from manager?)
-        return allowed_fields
-    
-    return allowed_fields
-
-
-def handle_edit_post(request, current_user_profile, employee):
-    """
-    Handle POST request for editing employee
-    """
-    user = employee.user
-    data = request.POST
-    errors = {}
-    
-    # Get allowed fields for this user
-    allowed_fields = get_allowed_fields_for_user(current_user_profile, employee)
-    
-    # Validate email (if allowed)
-    if allowed_fields['email']:
-        email = data.get('email', '').strip()
-        if email:
-            if User.objects.filter(email=email).exclude(id=user.id).exists():
-                errors['email'] = ['Email is already in use by another account.']
-            else:
-                user.email = email
-    
-    # Update user fields (if allowed)
-    if allowed_fields['first_name']:
-        user.first_name = data.get('first_name', '').strip()
-    
-    if allowed_fields['last_name']:
-        user.last_name = data.get('last_name', '').strip()
-    
-    # Update phone number (if allowed)
-    if allowed_fields['phone_number']:
-        phone_number = data.get('phone_number', '').strip()
-        if phone_number:
-            try:
-                phone_num = int(phone_number)
-                if CustomUser.objects.filter(phone_number=phone_num).exclude(id=employee.id).exists():
-                    errors['phone_number'] = ['Phone number is already in use by another employee.']
-                else:
-                    employee.phone_number = phone_num
-            except ValueError:
-                errors['phone_number'] = ['Please enter a valid phone number.']
-    
-    # Update department (if allowed and only for super admin)
-    if allowed_fields['department'] and current_user_profile.is_superadmin:
-        department_id = data.get('department', '').strip()
-        if department_id:
-            try:
-                department = Department.objects.get(id=department_id)
-                employee.department = department
-                
-                # If employee is a manager and their department changed, 
-                # check if they should remain manager
-                if employee.role == 'manager' and employee.department != department:
-                    # Remove manager role if department changed
-                    employee.role = 'employee'
-            except Department.DoesNotExist:
-                errors['department'] = ['Department does not exist.']
-    
-    # Update address (if allowed)
-    if allowed_fields['address']:
-        address = data.get('address', '').strip()
-        if address:
-            if len(address) > 100:
-                errors['address'] = ['Address must be 100 characters or less.']
-            else:
-                employee.address = address
-    
-    # Update role (only super admin can change roles)
-    if allowed_fields['role'] and current_user_profile.is_superadmin:
-        role = data.get('role', 'employee')
-        if role in ['employee', 'manager', 'admin']:
-            employee.role = role
-            
-            # Special handling for manager role changes
-            if role == 'manager':
-                # Ensure manager has a department
-                if not employee.department:
-                    errors['role'] = ['Manager must be assigned to a department.']
-                else:
-                    # Check if this department already has a manager
-                    existing_manager = CustomUser.objects.filter(
-                        department=employee.department,
-                        role='manager',
-                        is_active=True
-                    ).exclude(id=employee.id).first()
-                    
-                    if existing_manager:
-                        errors['role'] = [f'Department {employee.department.name} already has a manager ({existing_manager.user.get_full_name()}).']
-    
-    # Update status (if allowed)
-    if allowed_fields['is_active']:
-        employee.is_active = data.get('is_active') == 'on'
-        
-        # Prevent deactivating yourself
-        if employee.id == current_user_profile.id and not employee.is_active:
-            errors['is_active'] = ['You cannot deactivate your own account.']
-    
-    # Update password (if allowed)
-    if allowed_fields['password']:
-        password1 = data.get('password1', '').strip()
-        password2 = data.get('password2', '').strip()
-        if password1 and password2:
-            if password1 == password2:
-                user.set_password(password1)
-            else:
-                errors['password1'] = ['Passwords do not match.']
-    
-    # Check for unauthorized field edits
-    unauthorized_fields = []
-    if not allowed_fields['email'] and 'email' in data:
-        unauthorized_fields.append('email')
-    if not allowed_fields['first_name'] and 'first_name' in data:
-        unauthorized_fields.append('first_name')
-    if not allowed_fields['last_name'] and 'last_name' in data:
-        unauthorized_fields.append('last_name')
-    if not allowed_fields['phone_number'] and 'phone_number' in data:
-        unauthorized_fields.append('phone_number')
-    if not allowed_fields['department'] and 'department' in data:
-        unauthorized_fields.append('department')
-    if not allowed_fields['address'] and 'address' in data:
-        unauthorized_fields.append('address')
-    if not allowed_fields['role'] and 'role' in data:
-        unauthorized_fields.append('role')
-    if not allowed_fields['is_active'] and 'is_active' in data:
-        unauthorized_fields.append('is_active')
-    if not allowed_fields['password'] and ('password1' in data or 'password2' in data):
-        unauthorized_fields.append('password')
-    
-    if unauthorized_fields:
-        errors['__all__'] = [f'You are not authorized to modify: {", ".join(unauthorized_fields)}']
-    
-    # If there are errors, return them
-    if errors:
-        return JsonResponse({
-            'success': False,
-            'errors': errors
-        }, status=400)
-    
-    # Save changes
-    user.save()
-    employee.save()
-    
-    # If employee was made a manager, ensure they're the only active manager in that department
-    if employee.role == 'manager' and employee.is_active and employee.department:
-        # Deactivate other managers in the same department
-        CustomUser.objects.filter(
-            department=employee.department,
-            role='manager',
-            is_active=True
-        ).exclude(id=employee.id).update(
-            role='employee'
-        )
-    
-    return JsonResponse({
-        'success': True,
-        'message': 'Employee updated successfully!',
-        'employee': {
-            'id': str(employee.id),
-            'name': user.get_full_name() or user.username,
-            'username': user.username,
-            'email': user.email,
-            'phone': str(employee.phone_number),
-            'department': employee.department.name if employee.department else 'No Department',
-            'department_id': str(employee.department.id) if employee.department else '',
-            'role': employee.get_role_display(),
-            'role_value': employee.role,
-            'status': 'Active' if employee.is_active else 'Inactive',
-            'avatar_url': f'https://ui-avatars.com/api/?name={user.get_full_name() or user.username}&background=4361ee&color=fff&size=45'
-        }
-    })
-
-
-def handle_edit_get(employee, current_user_profile):
-    """
-    Handle GET request for editing employee
-    """
-    user = employee.user
-    
-    # Get allowed fields to determine what to return
-    allowed_fields = get_allowed_fields_for_user(current_user_profile, employee)
-    
-    # Prepare response data based on permissions
-    response_data = {
-        'id': str(employee.id),
-        'username': user.username,
-        'is_active': employee.is_active,
-        'allowed_fields': allowed_fields  # Send allowed fields to frontend
-    }
-    
-    # Only include fields the user is allowed to edit
-    if allowed_fields['email']:
-        response_data['email'] = user.email
-    
-    if allowed_fields['first_name']:
-        response_data['first_name'] = user.first_name or ''
-    
-    if allowed_fields['last_name']:
-        response_data['last_name'] = user.last_name or ''
-    
-    if allowed_fields['phone_number']:
-        response_data['phone_number'] = str(employee.phone_number)
-    
-    if allowed_fields['department']:
-        response_data['department_id'] = str(employee.department.id) if employee.department else ''
-    
-    if allowed_fields['address']:
-        response_data['address'] = employee.address or ''
-    
-    if allowed_fields['role']:
-        response_data['role'] = employee.role
-    
-    return JsonResponse({
-        'success': True,
-        'employee': response_data
-    })
-            
-@login_required
-def delete_employee(request, employee_id):
     if request.method == 'POST':
         try:
-            # Get current user's profile
-            current_user_profile = CustomUser.objects.get(user=request.user)
+            # Get the employee instance
+            employee = CustomUser.objects.get(id=employee_id)
+            user = employee.user
             
-            # Get the employee to delete
-            employee_to_delete = CustomUser.objects.get(id=employee_id)
-            user_to_delete = employee_to_delete.user
+            # Get form data
+            data = request.POST
+            errors = {}
             
-            # Get employee name for the message
-            employee_name = user_to_delete.get_full_name() or user_to_delete.username
+            # Validate email
+            email = data.get('email', '').strip()
+            if email:
+                # Check if email is already taken by another user
+                if User.objects.filter(email=email).exclude(id=user.id).exists():
+                    errors['email'] = ['Email is already in use by another account.']
+                else:
+                    user.email = email
             
-            # ========== PERMISSION CHECKS ==========
+            # Update user fields
+            user.first_name = data.get('first_name', '').strip()
+            user.last_name = data.get('last_name', '').strip()
             
-            # 1. Only super admin can delete employees
-            if not current_user_profile.is_superadmin:
+            # Update phone number (check uniqueness)
+            phone_number = data.get('phone_number', '').strip()
+            if phone_number:
+                try:
+                    phone_num = int(phone_number)
+                    if CustomUser.objects.filter(phone_number=phone_num).exclude(id=employee_id).exists():
+                        errors['phone_number'] = ['Phone number is already in use by another employee.']
+                    else:
+                        employee.phone_number = phone_num
+                except ValueError:
+                    errors['phone_number'] = ['Please enter a valid phone number.']
+            
+            # Update department
+            department_id = data.get('department', '').strip()
+            if department_id:
+                try:
+                    department = Department.objects.get(id=department_id)
+                    employee.department = department
+                except Department.DoesNotExist:
+                    pass
+            
+            # Update address
+            address = data.get('address', '').strip()
+            if address:
+                if len(address) > 100:
+                    errors['address'] = ['Address must be 100 characters or less.']
+                else:
+                    employee.address = address
+            
+            # Update role
+            role = data.get('role', 'employee')
+            if role in ['employee', 'manager', 'admin']:
+                employee.role = role
+            
+            # Update status
+            employee.is_active = data.get('is_active') == 'on'
+            
+            # Update password if provided
+            password1 = data.get('password1', '').strip()
+            password2 = data.get('password2', '').strip()
+            if password1 and password2:
+                if password1 == password2:
+                    user.set_password(password1)
+                else:
+                    errors['password1'] = ['Passwords do not match.']
+            
+            # If there are errors, return them
+            if errors:
                 return JsonResponse({
                     'success': False,
-                    'error': 'Only super administrators can delete employees'
-                }, status=403)
-            
-            # 2. Prevent deleting yourself
-            if employee_to_delete.id == current_user_profile.id:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'You cannot delete your own account'
+                    'errors': errors
                 }, status=400)
             
-            # 3. Prevent deleting other super admins (only super admins can delete other super admins)
-            if employee_to_delete.role == 'admin' and not current_user_profile.user.is_superuser:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'You do not have permission to delete other administrators'
-                }, status=403)
+            # Save changes
+            user.save()
+            employee.save()
             
-            # 4. Check if employee is a department manager
-            if employee_to_delete.role == 'manager' and employee_to_delete.department:
-                # Get department for warning message
-                department_name = employee_to_delete.department.name
-                
-                # Check if there are other managers in the same department
-                other_managers = CustomUser.objects.filter(
-                    department=employee_to_delete.department,
-                    role='manager',
-                    is_active=True
-                ).exclude(id=employee_to_delete.id).count()
-                
-                if other_managers == 0:
-                    # This is the only manager in the department
-                    # We'll allow deletion but warn about department becoming manager-less
-                    warning = f"Warning: This employee is the only manager in the '{department_name}' department. The department will be left without a manager."
-                else:
-                    warning = None
-            else:
-                warning = None
+            return JsonResponse({
+                'success': True,
+                'message': 'Employee updated successfully!',
+                'employee': {
+                    'id': str(employee.id),
+                    'name': user.get_full_name() or user.username,
+                    'username': user.username,
+                    'email': user.email,
+                    'phone': str(employee.phone_number),
+                    'department': employee.department.name if employee.department else 'No Department',
+                    'role': employee.get_role_display(),
+                    'status': 'Active' if employee.is_active else 'Inactive',
+                    'avatar_url': f'https://ui-avatars.com/api/?name={user.get_full_name() or user.username}&background=4361ee&color=fff&size=45'
+                }
+            })
             
-            # ========== DELETION LOGIC ==========
-            
-            try:
-                # Use transaction to ensure atomicity
-                with transaction.atomic():
-                    # Store data for audit log before deletion
-                    deletion_data = {
-                        'employee_id': str(employee_to_delete.id),
-                        'employee_name': employee_name,
-                        'username': user_to_delete.username,
-                        'email': user_to_delete.email,
-                        'role': employee_to_delete.role,
-                        'department': employee_to_delete.department.name if employee_to_delete.department else None,
-                        'deleted_by': current_user_profile.user.username,
-                        'deleted_at': timezone.now().isoformat()
-                    }
-                    
-                    # Delete the CustomUser (this should cascade to related objects)
-                    employee_to_delete.delete()
-                    
-                    # Also delete the associated User object
-                    user_to_delete.delete()
-                    
-                    # Log the deletion (if you have logging system)
-                    try:
-                        from .models import ActivityLog
-                        ActivityLog.objects.create(
-                            user=request.user,
-                            log_type='delete',
-                            module='employee',
-                            action=f'Deleted employee: {employee_name} ({user_to_delete.username})',
-                            status='success',
-                            additional_data=deletion_data
-                        )
-                    except Exception as log_error:
-                        print(f"Failed to log deletion: {log_error}")
-                    
-                    # Prepare response
-                    response_data = {
-                        'success': True,
-                        'message': f'Employee "{employee_name}" deleted successfully!',
-                        'deleted_employee': {
-                            'id': employee_id,
-                            'name': employee_name,
-                            'username': user_to_delete.username
-                        }
-                    }
-                    
-                    # Add warning if applicable
-                    if warning:
-                        response_data['warning'] = warning
-                        response_data['requires_confirmation'] = True
-                    
-                    return JsonResponse(response_data)
-                    
-            except Exception as delete_error:
-                # If there's an error during deletion, check if employee was actually deleted
-                try:
-                    # Check if employee still exists
-                    CustomUser.objects.get(id=employee_id)
-                    employee_still_exists = True
-                except CustomUser.DoesNotExist:
-                    employee_still_exists = False
-                
-                try:
-                    # Check if user still exists
-                    User.objects.get(id=user_to_delete.id)
-                    user_still_exists = True
-                except User.DoesNotExist:
-                    user_still_exists = False
-                
-                if not employee_still_exists and not user_still_exists:
-                    # Both objects were deleted despite the error
-                    print(f"Warning: Employee {employee_name} was deleted but error occurred: {delete_error}")
-                    return JsonResponse({
-                        'success': True,
-                        'message': f'Employee "{employee_name}" deleted successfully!',
-                        'warning': f'Employee deleted with warnings: {str(delete_error)}'
-                    })
-                else:
-                    # Deletion failed partially or completely
-                    raise delete_error
-                
         except CustomUser.DoesNotExist:
-            # Employee not found
+            return JsonResponse({
+                'success': False,
+                'errors': {'__all__': ['Employee not found.']}
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'errors': {'__all__': [str(e)]}
+            }, status=500)
+    
+    elif request.method == 'GET':
+        
+        try:
+            employee = CustomUser.objects.get(id=employee_id)
+            user = employee.user
+            
+            return JsonResponse({
+                'success': True,
+                'employee': {
+                    'id': str(employee.id),
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'phone_number': str(employee.phone_number),
+                    'department_id': str(employee.department.id) if employee.department else '',
+                    'address': employee.address,
+                    'role': employee.role,
+                    'is_active': employee.is_active
+                }
+            })
+        except CustomUser.DoesNotExist:
             return JsonResponse({
                 'success': False,
                 'error': 'Employee not found'
             }, status=404)
+
+@csrf_exempt
+def delete_employee(request, employee_id):
+    if request.method == 'POST':
+        try:
+            employee = CustomUser.objects.get(id=employee_id)
+            user = employee.user
             
-        except User.DoesNotExist:
-            # User not found (shouldn't happen if CustomUser exists)
+            # Get employee name for the message
+            employee_name = user.get_full_name() or user.username
+            
+            # Delete the employee
+            employee.delete()
+            user.delete()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Employee "{employee_name}" deleted successfully!'
+            })
+            
+        except CustomUser.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'error': 'User account not found'
+                'error': 'Employee not found'
             }, status=404)
-            
         except Exception as e:
-            # General error
-            import traceback
-            error_details = traceback.format_exc()
-            print(f"Delete error: {str(e)}\n{error_details}")
-            
             return JsonResponse({
                 'success': False,
-                'error': f'Failed to delete employee: {str(e)}',
-                'debug': error_details if settings.DEBUG else None
+                'error': str(e)
             }, status=500)
-    
-    else:
-        # Method not allowed
-        return JsonResponse({
-            'success': False,
-            'error': 'Method not allowed'
-        }, status=405)
-        
-# In views.py - update toggle_employee_status function
+
 @login_required
 def toggle_employee_status(request, employee_id):
     if request.method == 'POST':
         try:
-            # Get current user's profile
-            current_user_profile = CustomUser.objects.get(user=request.user)
-            
-            # Get the employee
             employee = CustomUser.objects.get(id=employee_id)
-            
-            # Check permissions
-            if not current_user_profile.can_edit_employee(employee):
-                return JsonResponse({
-                    'success': False,
-                    'error': 'You do not have permission to modify this employee'
-                }, status=403)
-            
-            # Prevent modifying yourself if not super admin
-            if employee.id == current_user_profile.id and not current_user_profile.is_superadmin:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'You cannot modify your own status'
-                }, status=400)
             
             # Toggle the status
             employee.is_active = not employee.is_active
