@@ -11,7 +11,7 @@ from emp.forms import DepartmentForm
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-
+from django.views.decorators.csrf import csrf_exempt
 def home_page(request):
     try:
         # Get filter parameters
@@ -254,7 +254,7 @@ def edit_employee(request, employee_id):
                 'error': 'Employee not found'
             }, status=404)
 
-@login_required
+@csrf_exempt
 def delete_employee(request, employee_id):
     if request.method == 'POST':
         try:
@@ -278,6 +278,11 @@ def delete_employee(request, employee_id):
                 'success': False,
                 'error': 'Employee not found'
             }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
 
 @login_required
 def toggle_employee_status(request, employee_id):
