@@ -171,3 +171,9 @@ class CustomUser(models.Model):
     def is_superadmin(self):
         """ check if user is a manager """
         return self.role =='admin' and self.user.is_superuser
+    
+    @property
+    def is_department_manager(self):
+        """ check if user is a manager """
+        return self.role =='manager' and hasattr(self, 'department') and self.department is not None
+    
