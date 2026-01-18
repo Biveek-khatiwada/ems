@@ -166,3 +166,8 @@ class CustomUser(models.Model):
     @classmethod
     def get_active_users(cls):
         return cls.objects.filter(is_active=True)
+    
+    @property
+    def is_superadmin(self):
+        """ check if user is a manager """
+        return self.role =='admin' and self.user.is_superuser
