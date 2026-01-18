@@ -12,6 +12,8 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+from django.conf import settings
 
 
 @login_required
@@ -471,43 +473,180 @@ def handle_edit_get(employee, current_user_profile):
         'employee': response_data
     })
             
-@csrf_exempt
+@login_required
 def delete_employee(request, employee_id):
     if request.method == 'POST':
         try:
-            # Try to get employee first
-            try:
-                employee = CustomUser.objects.get(id=employee_id)
-                user = employee.user
-                employee_name = user.get_full_name() or user.username
-            except CustomUser.DoesNotExist:
+            # Get current user's profile
+            current_user_profile = CustomUser.objects.get(user=request.user)
+            
+            # Get the employee to delete
+            employee_to_delete = CustomUser.objects.get(id=employee_id)
+            user_to_delete = employee_to_delete.user
+            
+            # Get employee name for the message
+            employee_name = user_to_delete.get_full_name() or user_to_delete.username
+            
+            # ========== PERMISSION CHECKS ==========
+            
+            # 1. Only super admin can delete employees
+            if not current_user_profile.is_superadmin:
                 return JsonResponse({
                     'success': False,
-                    'error': 'Employee not found'
-                }, status=404)
+                    'error': 'Only super administrators can delete employees'
+                }, status=403)
             
-            # Delete both objects
-            employee.delete()
-            user.delete()
+            # 2. Prevent deleting yourself
+            if employee_to_delete.id == current_user_profile.id:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'You cannot delete your own account'
+                }, status=400)
             
-            # Always return success if we get here
+            # 3. Prevent deleting other super admins (only super admins can delete other super admins)
+            if employee_to_delete.role == 'admin' and not current_user_profile.user.is_superuser:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'You do not have permission to delete other administrators'
+                }, status=403)
+            
+            # 4. Check if employee is a department manager
+            if employee_to_delete.role == 'manager' and employee_to_delete.department:
+                # Get department for warning message
+                department_name = employee_to_delete.department.name
+                
+                # Check if there are other managers in the same department
+                other_managers = CustomUser.objects.filter(
+                    department=employee_to_delete.department,
+                    role='manager',
+                    is_active=True
+                ).exclude(id=employee_to_delete.id).count()
+                
+                if other_managers == 0:
+                    # This is the only manager in the department
+                    # We'll allow deletion but warn about department becoming manager-less
+                    warning = f"Warning: This employee is the only manager in the '{department_name}' department. The department will be left without a manager."
+                else:
+                    warning = None
+            else:
+                warning = None
+            
+            # ========== DELETION LOGIC ==========
+            
+            try:
+                # Use transaction to ensure atomicity
+                with transaction.atomic():
+                    # Store data for audit log before deletion
+                    deletion_data = {
+                        'employee_id': str(employee_to_delete.id),
+                        'employee_name': employee_name,
+                        'username': user_to_delete.username,
+                        'email': user_to_delete.email,
+                        'role': employee_to_delete.role,
+                        'department': employee_to_delete.department.name if employee_to_delete.department else None,
+                        'deleted_by': current_user_profile.user.username,
+                        'deleted_at': timezone.now().isoformat()
+                    }
+                    
+                    # Delete the CustomUser (this should cascade to related objects)
+                    employee_to_delete.delete()
+                    
+                    # Also delete the associated User object
+                    user_to_delete.delete()
+                    
+                    # Log the deletion (if you have logging system)
+                    try:
+                        from .models import ActivityLog
+                        ActivityLog.objects.create(
+                            user=request.user,
+                            log_type='delete',
+                            module='employee',
+                            action=f'Deleted employee: {employee_name} ({user_to_delete.username})',
+                            status='success',
+                            additional_data=deletion_data
+                        )
+                    except Exception as log_error:
+                        print(f"Failed to log deletion: {log_error}")
+                    
+                    # Prepare response
+                    response_data = {
+                        'success': True,
+                        'message': f'Employee "{employee_name}" deleted successfully!',
+                        'deleted_employee': {
+                            'id': employee_id,
+                            'name': employee_name,
+                            'username': user_to_delete.username
+                        }
+                    }
+                    
+                    # Add warning if applicable
+                    if warning:
+                        response_data['warning'] = warning
+                        response_data['requires_confirmation'] = True
+                    
+                    return JsonResponse(response_data)
+                    
+            except Exception as delete_error:
+                # If there's an error during deletion, check if employee was actually deleted
+                try:
+                    # Check if employee still exists
+                    CustomUser.objects.get(id=employee_id)
+                    employee_still_exists = True
+                except CustomUser.DoesNotExist:
+                    employee_still_exists = False
+                
+                try:
+                    # Check if user still exists
+                    User.objects.get(id=user_to_delete.id)
+                    user_still_exists = True
+                except User.DoesNotExist:
+                    user_still_exists = False
+                
+                if not employee_still_exists and not user_still_exists:
+                    # Both objects were deleted despite the error
+                    print(f"Warning: Employee {employee_name} was deleted but error occurred: {delete_error}")
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Employee "{employee_name}" deleted successfully!',
+                        'warning': f'Employee deleted with warnings: {str(delete_error)}'
+                    })
+                else:
+                    # Deletion failed partially or completely
+                    raise delete_error
+                
+        except CustomUser.DoesNotExist:
+            # Employee not found
             return JsonResponse({
-                'success': True,
-                'message': f'Employee "{employee_name}" deleted successfully!'
-            })
+                'success': False,
+                'error': 'Employee not found'
+            }, status=404)
+            
+        except User.DoesNotExist:
+            # User not found (shouldn't happen if CustomUser exists)
+            return JsonResponse({
+                'success': False,
+                'error': 'User account not found'
+            }, status=404)
             
         except Exception as e:
-            # If we get any other error, still return success
-            # because the employee might have been deleted
+            # General error
             import traceback
-            print(f"Warning during delete (employee may still be deleted): {str(e)}")
+            error_details = traceback.format_exc()
+            print(f"Delete error: {str(e)}\n{error_details}")
             
             return JsonResponse({
-                'success': True,
-                'message': 'Employee deleted successfully!',
-                'warning': str(e)
-            })
-            
+                'success': False,
+                'error': f'Failed to delete employee: {str(e)}',
+                'debug': error_details if settings.DEBUG else None
+            }, status=500)
+    
+    else:
+        # Method not allowed
+        return JsonResponse({
+            'success': False,
+            'error': 'Method not allowed'
+        }, status=405)
+        
 @login_required
 def toggle_employee_status(request, employee_id):
     if request.method == 'POST':
