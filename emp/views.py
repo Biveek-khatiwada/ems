@@ -671,3 +671,10 @@ def user_login(request):
     
     return render(request, 'emp/login.html')
 
+
+@login_required
+@never_cache
+def user_login(request):
+    logout(request)
+    messages.success(request,"you have been successfully logged out.")
+    return redirect('emp:login')
