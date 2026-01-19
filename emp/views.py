@@ -12,6 +12,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 
 # views.py
 def home_page(request):
@@ -20,7 +21,6 @@ def home_page(request):
         try:
             custom_user = request.user.custom_user_profile
         except CustomUser.DoesNotExist:
-            # If no custom profile, redirect to login or handle appropriately
             return redirect('login')
         
         # Get filter parameters
@@ -188,8 +188,7 @@ def home_page(request):
         }
         return render(request, 'emp/home.html', context)
     
-def login(request):
-    return HttpResponse("Login page PlaceHolder")
+
     
 @login_required
 def edit_employee(request, employee_id):
