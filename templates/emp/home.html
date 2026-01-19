@@ -821,363 +821,195 @@
 .form-group {
   margin-bottom: 15px;
 }
-/* Role-specific badges */
-.role-display {
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: 10px;
-}
-
-.role-display-admin {
-    background: linear-gradient(135deg, #7209b7 0%, #5e0896 100%);
-    color: white;
-}
-
-.role-display-manager {
-    background: linear-gradient(135deg, #4361ee 0%, #3a56d4 100%);
-    color: white;
-}
-
-.role-display-employee {
-    background: linear-gradient(135deg, #06d6a0 0%, #05c190 100%);
-    color: white;
-}
-
-/* Permission-based styles */
-.permission-required {
-    position: relative;
-}
-
-.permission-required.disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.permission-hint {
-    position: absolute;
-    top: -40px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--dark);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    white-space: nowrap;
-    z-index: 100;
-    display: none;
-}
-
-.permission-hint::after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 5px solid var(--dark);
-}
-
-.permission-required.disabled:hover .permission-hint {
-    display: block;
-}
-
-/* Department badge for manager */
-.department-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(67, 97, 238, 0.1);
-    color: var(--primary);
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-left: 10px;
-}
     </style>
-
   </head>
   <body>
- <!-- Header -->
-<div class="header">
-    <div class="header-left">
-        <h1><i class="fas fa-users-cog"></i> Employee Management System</h1>
-        <div class="user-info">
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-left">
+          <h1><i class="fas fa-users-cog"></i> Employee Management System</h1>
+          <div class="user-info">
             <div style="position: relative;">
-                <img
-                    src="https://ui-avatars.com/api/?name={{ user_full_name|urlencode }}&background={% if user_role == 'admin' %}7209b7{% elif user_role == 'manager' %}4361ee{% else %}06d6a0{% endif %}&color=fff&size=40"
-                    alt="{{ user_full_name }}"
-                />
-                <div class="notification-badge">3</div>
+              <img
+                src="https://ui-avatars.com/api/?name=Admin+User&background=4361ee&color=fff&size=40"
+                alt="Admin User"
+              />
+              <div class="notification-badge">3</div>
             </div>
             <div>
-                <div style="font-weight: 600">{{ user_full_name }}</div>
-                <div style="font-size: 0.85rem; color: var(--gray); display: flex; align-items: center; gap: 10px;">
-                    <span class="role-display role-display-{{ user_role }}">
-                        <i class="fas fa-{% if user_role == 'admin' %}crown{% elif user_role == 'manager' %}user-tie{% else %}user{% endif %}"></i>
-                        {{ user_role|title }}
-                    </span>
-                    {% if user_department %}
-                    <span class="department-badge">
-                        <i class="fas fa-building"></i>
-                        {{ user_department.name }}
-                    </span>
-                    {% endif %}
-                </div>
+              <div style="font-weight: 600">Admin User</div>
+              <div style="font-size: 0.85rem; color: var(--gray)">Super Administrator</div>
             </div>
+          </div>
         </div>
-    </div>
-    <div class="header-actions">
-        <!-- Add Employee button - only for admin and managers -->
-        {% if is_superadmin or is_manager %}
-        <button class="btn btn-primary" onclick="showAddEmployeeModal()" 
-                {% if is_manager and not user_department %}disabled title="You need to be assigned to a department to add employees"{% endif %}>
+        <div class="header-actions">
+          <button class="btn btn-primary" onclick="showAddEmployeeModal()">
             <i class="fas fa-user-plus"></i> Add Employee
-        </button>
-        {% endif %}
-        
-        <!-- Manage Departments button - only for super admin -->
-        {% if is_superadmin %}
-        <a href="{% url 'emp:manage_departments' %}" class="btn btn-outline" style="text-decoration: none;">
-            <i class="fas fa-building"></i> Manage Departments
-        </a>
-        {% endif %}
-        
-        <!-- Export button - only for admin and managers -->
-        {% if is_superadmin or is_manager %}
-        <button class="btn btn-outline" onclick="exportData()">
+          </button>
+         <a href="{% url 'emp:manage_departments' %}" class="btn btn-outline" style="text-decoration: none;">
+    <i class="fas fa-building"></i> Manage Departments
+</a>
+          <button class="btn btn-outline" onclick="exportData()">
             <i class="fas fa-download"></i> Export
-        </button>
-        {% endif %}
-    </div>
-</div>
-  
+          </button>
+        </div>
+      </div>
 
       <!-- Stats Cards -->
-<div class="stats-container">
-    <div class="stat-card primary">
-        <div class="stat-icon">
+      <div class="stats-container">
+        <div class="stat-card primary">
+          <div class="stat-icon">
             <i class="fas fa-users"></i>
-        </div>
-        <div class="stat-value">{{ total_employees }}</div>
-        <div class="stat-label">
-            {% if is_manager %}Department{% endif %} Total Employees
-        </div>
-        <div class="stat-trend">
+          </div>
+          <div class="stat-value">{{ emp_count }}</div>
+          <div class="stat-label">Total Employees</div>
+          <div class="stat-trend">
             <i class="fas fa-arrow-up trend-up"></i>
             <span>{{ new_hires_this_month }} new this month</span>
+          </div>
         </div>
-    </div>
-    
-    {% if is_superadmin %}
-    <div class="stat-card secondary">
-        <div class="stat-icon">
+        <div class="stat-card secondary">
+          <div class="stat-icon">
             <i class="fas fa-building"></i>
-        </div>
-        <div class="stat-value">{{ total_departments }}</div>
-        <div class="stat-label">Active Departments</div>
-        <div class="stat-trend">
+          </div>
+          <div class="stat-value">{{ total_departments }}</div>
+          <div class="stat-label">Active Departments</div>
+          <div class="stat-trend">
             <i class="fas fa-users"></i>
             <span>{{ avg_employees_per_dept }} avg per dept</span>
+          </div>
         </div>
-    </div>
-    {% endif %}
-    
-    <div class="stat-card success">
-        <div class="stat-icon">
+        <div class="stat-card success">
+          <div class="stat-icon">
             <i class="fas fa-user-check"></i>
-        </div>
-        <div class="stat-value">{{ active_employees }}</div>
-        <div class="stat-label">Active Employees</div>
-        <div class="stat-trend">
+          </div>
+          <div class="stat-value">{{ active_employees }}</div>
+          <div class="stat-label">Active Employees</div>
+          <div class="stat-trend">
             <span>{{ active_percentage }}% active rate</span>
+          </div>
         </div>
-    </div>
-    
-    <div class="stat-card info">
-        <div class="stat-icon">
+        <div class="stat-card info">
+          <div class="stat-icon">
             <i class="fas fa-user-tie"></i>
-        </div>
-        <div class="stat-value">{{ managers_count }}</div>
-        <div class="stat-label">
-            {% if is_manager %}Department{% endif %} Managers
-        </div>
-        <div class="stat-trend">
+          </div>
+          <div class="stat-value">{{ managers_count }}</div>
+          <div class="stat-label">Managers</div>
+          <div class="stat-trend">
             <i class="fas fa-chart-line"></i>
             <span>{{ managers_percentage }}% of total</span>
+          </div>
         </div>
-    </div>
-</div>
+      </div>
 
-    <!-- Filter Section -->
-{% if is_superadmin or is_manager %}
-<div class="filter-section">
-    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-        <i class="fas fa-filter"></i> Filter Employees
-    </h3>
-    <form method="GET" action="">
-        <div class="filter-grid">
+      <!-- Filter Section -->
+      <div class="filter-section">
+        <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-filter"></i> Filter Employees
+        </h3>
+        <form method="GET" action="">
+          <div class="filter-grid">
             <div class="filter-group">
-                <label for="department"><i class="fas fa-building"></i> Department</label>
-                <select name="department" id="department" {% if is_manager and user_department %}disabled{% endif %}>
-                    <option value="">All Departments</option>
-                    {% for dept in departments %}
-                    {% if is_superadmin or dept.id == user_department.id %}
-                    <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
-                        {{ dept.name }} ({{ dept.code }})
-                    </option>
-                    {% endif %}
-                    {% endfor %}
-                </select>
-                {% if is_manager and user_department %}
-                <small style="display: block; margin-top: 5px; color: var(--gray); font-size: 0.85rem;">
-                    Showing only your department: {{ user_department.name }}
-                </small>
-                {% endif %}
+              <label for="department"><i class="fas fa-building"></i> Department</label>
+              <select name="department" id="department">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if selected_department == dept.id|stringformat:"s" %}selected{% endif %}>
+                  {{ dept.name }} ({{ dept.code }})
+                </option>
+                {% endfor %}
+              </select>
             </div>
             <div class="filter-group">
-                <label for="role"><i class="fas fa-user-tag"></i> Role</label>
-                <select name="role" id="role">
-                    <option value="">All Roles</option>
-                    <option value="employee" {% if selected_role == 'employee' %}selected{% endif %}>Employee</option>
-                    <option value="manager" {% if selected_role == 'manager' %}selected{% endif %}>Manager</option>
-                    {% if is_superadmin %}
-                    <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>Administrator</option>
-                    {% endif %}
-                </select>
+              <label for="role"><i class="fas fa-user-tag"></i> Role</label>
+              <select name="role" id="role">
+                <option value="">All Roles</option>
+                <option value="employee" {% if selected_role == 'employee' %}selected{% endif %}>Employee</option>
+                <option value="manager" {% if selected_role == 'manager' %}selected{% endif %}>Manager</option>
+                <option value="admin" {% if selected_role == 'admin' %}selected{% endif %}>Administrator</option>
+              </select>
             </div>
             <div class="filter-group">
-                <label for="status"><i class="fas fa-circle"></i> Status</label>
-                <select name="status" id="status">
-                    <option value="">All Status</option>
-                    <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
-                    <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
-                </select>
+              <label for="status"><i class="fas fa-circle"></i> Status</label>
+              <select name="status" id="status">
+                <option value="">All Status</option>
+                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+              </select>
             </div>
             <div class="filter-group">
-                <label for="search"><i class="fas fa-search"></i> Search</label>
-                <input 
-                    type="text" 
-                    name="q" 
-                    id="search" 
-                    placeholder="Search by name, username, or phone..."
-                    value="{{ search_query }}"
-                >
+              <label for="search"><i class="fas fa-search"></i> Search</label>
+              <input 
+                type="text" 
+                name="q" 
+                id="search" 
+                placeholder="Search by name, username, or phone..."
+                value="{{ search_query }}"
+              >
             </div>
-        </div>
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-filter"></i> Apply Filters
+              <i class="fas fa-filter"></i> Apply Filters
             </button>
             <a href="{% url 'emp:home_page' %}" class="btn btn-outline">
-                <i class="fas fa-times"></i> Clear Filters
+              <i class="fas fa-times"></i> Clear Filters
             </a>
-        </div>
-    </form>
-</div>
-{% endif %}
+          </div>
+        </form>
+      </div>
 
-      
-     <!-- Department Cards -->
-{% if is_superadmin and departments %}
-<div class="department-cards">
-    {% for dept in departments %}
-    <div class="department-card">
-        <div class="dept-header">
+      <!-- Department Cards -->
+      {% if departments %}
+      <div class="department-cards">
+        {% for dept in departments %}
+        <div class="department-card">
+          <div class="dept-header">
             <div class="dept-code">{{ dept.code }}</div>
             {% if dept.is_active %}
             <span class="badge badge-success">Active</span>
             {% else %}
             <span class="badge badge-danger">Inactive</span>
             {% endif %}
-        </div>
-        <div class="dept-name">{{ dept.name }}</div>
-        <div class="dept-manager">
+          </div>
+          <div class="dept-name">{{ dept.name }}</div>
+          <div class="dept-manager">
             <i class="fas fa-user-tie"></i>
             {% if dept.manager %}
             {{ dept.manager.user.get_full_name|default:dept.manager.user.username }}
             {% else %}
             No Manager Assigned
             {% endif %}
-        </div>
-        {% if dept.description %}
-        <p style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;">
+          </div>
+          {% if dept.description %}
+          <p style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;">
             {{ dept.description|truncatewords:20 }}
-        </p>
-        {% endif %}
-        <div class="dept-stats">
+          </p>
+          {% endif %}
+          <div class="dept-stats">
             <div style="text-align: center;">
-                <div style="font-size: 1.5rem; font-weight: 700;">{{ dept.dept_employee_count }}</div>
-                <div style="font-size: 0.8rem; color: var(--gray);">Employees</div>
+              <div style="font-size: 1.5rem; font-weight: 700;">{{ dept.employee_count }}</div>
+              <div style="font-size: 0.8rem; color: var(--gray);">Employees</div>
             </div>
             <div style="text-align: center;">
-                <div style="font-size: 1.5rem; font-weight: 700;">
-                    {{ dept.get_active_employees.count|default:0 }}
-                </div>
-                <div style="font-size: 0.8rem; color: var(--gray);">Active</div>
+              <div style="font-size: 1.5rem; font-weight: 700;">
+                {{ dept.get_active_employees.count|default:0 }}
+              </div>
+              <div style="font-size: 0.8rem; color: var(--gray);">Active</div>
             </div>
             <div style="text-align: center;">
-                <div style="font-size: 1.5rem; font-weight: 700;">
-                    {{ dept.created_at|date:"M Y" }}
-                </div>
-                <div style="font-size: 0.8rem; color: var(--gray);">Created</div>
+              <div style="font-size: 1.5rem; font-weight: 700;">
+                {{ dept.created_at|date:"M Y" }}
+              </div>
+              <div style="font-size: 0.8rem; color: var(--gray);">Created</div>
             </div>
+          </div>
         </div>
-    </div>
-    {% endfor %}
-</div>
-{% elif is_manager and user_department %}
-<div style="margin-bottom: 30px; text-align: center;">
-    <div class="department-card" style="max-width: 500px; margin: 0 auto;">
-        <div class="dept-header">
-            <div class="dept-code">{{ user_department.code }}</div>
-            {% if user_department.is_active %}
-            <span class="badge badge-success">Active</span>
-            {% else %}
-            <span class="badge badge-danger">Inactive</span>
-            {% endif %}
-        </div>
-        <div class="dept-name">{{ user_department.name }}</div>
-        <div class="dept-manager">
-            <i class="fas fa-user-tie"></i>
-            {% if user_department.manager %}
-                {{ user_department.manager.user.get_full_name|default:user_department.manager.user.username }}
-            {% else %}
-                No Manager Assigned
-            {% endif %}
-        </div>
-        {% if user_department.description %}
-        <p style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;">
-            {{ user_department.description }}
-        </p>
-        {% endif %}
-        <div class="dept-stats">
-            <div style="text-align: center;">
-                <div style="font-size: 1.5rem; font-weight: 700;">{{ total_employees }}</div>
-                <div style="font-size: 0.8rem; color: var(--gray);">Employees</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 1.5rem; font-weight: 700;">{{ active_employees }}</div>
-                <div style="font-size: 0.8rem; color: var(--gray);">Active</div>
-            </div>
-            <div style="text-align: center;">
-                <div style="font-size: 1.5rem; font-weight: 700;">
-                    {{ user_department.created_at|date:"M Y" }}
-                </div>
-                <div style="font-size: 0.8rem; color: var(--gray);">Created</div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
       <!-- Employee Table -->
       <div class="card">
         <div class="card-header">
