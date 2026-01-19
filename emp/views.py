@@ -678,3 +678,22 @@ def user_login(request):
     logout(request)
     messages.success(request,"you have been successfully logged out.")
     return redirect('emp:login')
+
+@login_required
+@never_cache
+def complete_profile(request):
+    if hasattr(request.user,'custom_user_profile'):
+        return redirect('emp:home_page')
+    
+    if request.method =='POST':
+        phone_number = request.POST.get('phone_number')
+        address = request.POST.get('address')
+        CustomUser.objects.create(
+            user = request.user,
+            phone_number = phone_number,
+            address = address,
+            role = 'employee'
+        )
+        messages.success(request,'Profile completed successfully!')
+        return redirect('emp:home_page')
+    return render(request, 'emp/complete_profile.html')
