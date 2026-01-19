@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect,get_object_or_404
+from django.shortcuts import render, redirect,get_object_or_404,HttpResponse
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.core.paginator import Paginator
@@ -187,6 +187,9 @@ def home_page(request):
             'is_employee': True,
         }
         return render(request, 'emp/home.html', context)
+    
+def login(request):
+    return HttpResponse("Login page PlaceHolder")
     
 @login_required
 def edit_employee(request, employee_id):
