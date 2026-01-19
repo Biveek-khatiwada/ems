@@ -16,6 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from . import views,views_api
+from django.conf import settings
+from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("",include('emp.urls')),
@@ -23,4 +25,4 @@ urlpatterns = [
     #api paths
     path('api/toggle-status/<uuid:employee_id>/', views_api.toggle_employee_status, name='toggle_employee_status'),
     path('api/employee/<uuid:employee_id>/', views_api.get_employee_details, name='get_employee_details'),
-]
+] + static(settings.MEDIA_URL, document_root = settings.STATIC_ROOT)
