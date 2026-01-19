@@ -16,7 +16,9 @@ urlpatterns = [
     path('departments/edit/<int:department_id>/', views.edit_department, name='edit_department'),
     path('departments/delete/<int:department_id>/', views.delete_department, name='delete_department'),
     #login
-    path('login/', views.login, name='login'),
+    path('login/', views.user_login, name='login'),
+    path('logout/',views.user_logout, name='logout'),
+    path('complete-profile/',views.user_profile, name='complete_profile'),
 ]
 
 
