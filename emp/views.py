@@ -674,7 +674,7 @@ def user_login(request):
 
 @login_required
 @never_cache
-def user_login(request):
+def user_logout(request):
     logout(request)
     messages.success(request,"you have been successfully logged out.")
     return redirect('emp:login')
