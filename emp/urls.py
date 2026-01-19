@@ -18,7 +18,7 @@ urlpatterns = [
     #login
     path('login/', views.user_login, name='login'),
     path('logout/',views.user_logout, name='logout'),
-    path('complete-profile/',views.user_profile, name='complete_profile'),
+    path('complete-profile/',views.complete_profile, name='complete_profile'),
 ]
 
 
