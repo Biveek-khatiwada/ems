@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.contrib.auth import authenticate, login, logout
 
+@login_required
 def home_page(request):
     try:
         # Get the logged-in user's custom profile
@@ -654,7 +655,7 @@ def user_login(request):
     
     if request.method == 'POST':
         username = request.POST.get('username')
-        password = request.POST.get('passowrd')
+        password = request.POST.get('password')
         user = authenticate(request,username=username,password=password)
         if user is not None:
             login(request,user)
