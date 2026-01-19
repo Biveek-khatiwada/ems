@@ -13,8 +13,16 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 
+# views.py
 def home_page(request):
     try:
+        # Get the logged-in user's custom profile
+        try:
+            custom_user = request.user.custom_user_profile
+        except CustomUser.DoesNotExist:
+            # If no custom profile, redirect to login or handle appropriately
+            return redirect('login')
+        
         # Get filter parameters
         department_filter = request.GET.get('department', '')
         role_filter = request.GET.get('role', '')
@@ -22,11 +30,41 @@ def home_page(request):
         search_query = request.GET.get('q', '')
         page_number = request.GET.get('page', 1)
         
-        # Start with all employees
-        emp_details = CustomUser.objects.select_related('user', 'department').order_by('-created_at')
+        # Start with base queryset based on user role
+        if custom_user.role == 'admin' and request.user.is_superuser:
+            # Super Admin can see all employees
+            emp_details = CustomUser.objects.select_related('user', 'department').order_by('-created_at')
+            
+            # Get all departments for super admin
+            departments = Department.objects.annotate(
+                dept_employee_count=Count('employees')
+            ).order_by('name')
+            
+        elif custom_user.role == 'manager':
+            # Manager can only see employees from their department
+            if custom_user.department:
+                emp_details = CustomUser.objects.filter(
+                    department=custom_user.department
+                ).select_related('user', 'department').order_by('-created_at')
+                
+                # Get only manager's department and other active departments for filter
+                departments = Department.objects.filter(
+                    Q(id=custom_user.department.id) | Q(is_active=True)
+                ).annotate(
+                    dept_employee_count=Count('employees')
+                ).order_by('name')
+            else:
+                # If manager has no department, they can only see themselves
+                emp_details = CustomUser.objects.filter(id=custom_user.id).select_related('user', 'department')
+                departments = Department.objects.none()
+                
+        else:
+            # Regular employees can only see themselves
+            emp_details = CustomUser.objects.filter(id=custom_user.id).select_related('user', 'department')
+            departments = Department.objects.none()
         
-        # Apply filters
-        if department_filter:
+        # Apply additional filters (only if user has permission to see filtered data)
+        if department_filter and (custom_user.role == 'admin' or custom_user.role == 'manager'):
             emp_details = emp_details.filter(department_id=department_filter)
         
         if role_filter:
@@ -48,34 +86,55 @@ def home_page(request):
                 Q(address__icontains=search_query)
             )
         
-        # Pagination
-        paginator = Paginator(emp_details, 10)  # 10 items per page
-        page_obj = paginator.get_page(page_number)
-        
-        # Calculate statistics
-        total_employees = CustomUser.objects.count()
-        active_employees = CustomUser.objects.filter(is_active=True).count()
-        managers_count = CustomUser.objects.filter(role='manager').count()
-        
-        # Get departments - Use a different name for annotation
-        departments = Department.objects.annotate(
-            dept_employee_count=Count('employees')  # Changed from employee_count
-        ).order_by('name')
-        
-        total_departments = departments.filter(is_active=True).count()
+        # Calculate statistics based on user role
+        if custom_user.role == 'admin' and request.user.is_superuser:
+            # Super Admin gets full statistics
+            total_employees = CustomUser.objects.count()
+            active_employees = CustomUser.objects.filter(is_active=True).count()
+            managers_count = CustomUser.objects.filter(role='manager').count()
+            total_departments = Department.objects.filter(is_active=True).count()
+            
+            # Calculate new hires this month
+            current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            new_hires_this_month = CustomUser.objects.filter(
+                created_at__gte=current_month
+            ).count()
+            
+        elif custom_user.role == 'manager' and custom_user.department:
+            # Manager gets statistics for their department only
+            dept_employees = CustomUser.objects.filter(department=custom_user.department)
+            total_employees = dept_employees.count()
+            active_employees = dept_employees.filter(is_active=True).count()
+            managers_count = dept_employees.filter(role='manager').count()
+            total_departments = 1  # Only their department
+            
+            # Calculate new hires this month in their department
+            current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            new_hires_this_month = dept_employees.filter(
+                created_at__gte=current_month
+            ).count()
+            
+        else:
+            # Regular employee gets minimal statistics
+            total_employees = 1
+            active_employees = 1 if custom_user.is_active else 0
+            managers_count = 1 if custom_user.role == 'manager' else 0
+            total_departments = 1 if custom_user.department else 0
+            new_hires_this_month = 0
         
         # Calculate percentages
         active_percentage = round((active_employees / total_employees * 100) if total_employees > 0 else 0, 1)
         managers_percentage = round((managers_count / total_employees * 100) if total_employees > 0 else 0, 1)
         
-        # Calculate new hires this month
-        current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        new_hires_this_month = CustomUser.objects.filter(
-            created_at__gte=current_month
-        ).count()
-        
         # Calculate average employees per department
         avg_employees_per_dept = round(total_employees / total_departments, 1) if total_departments > 0 else 0
+        
+        # Pagination
+        paginator = Paginator(emp_details, 10)
+        page_obj = paginator.get_page(page_number)
+        
+        # Get user's full name for display
+        user_full_name = custom_user.full_name or request.user.username
         
         context = {
             'emp_details': page_obj,
@@ -95,6 +154,12 @@ def home_page(request):
             'selected_status': status_filter,
             'search_query': search_query,
             'page_obj': page_obj,
+            'user_role': custom_user.role,
+            'user_full_name': user_full_name,
+            'user_department': custom_user.department,
+            'is_superadmin': custom_user.role == 'admin' and request.user.is_superuser,
+            'is_manager': custom_user.role == 'manager',
+            'is_employee': custom_user.role == 'employee',
         }
         
         return render(request, 'emp/home.html', context)
@@ -115,10 +180,14 @@ def home_page(request):
             'new_hires_this_month': 0,
             'avg_employees_per_dept': 0,
             'page_obj': None,
+            'user_role': 'employee',
+            'user_full_name': 'User',
+            'is_superadmin': False,
+            'is_manager': False,
+            'is_employee': True,
         }
         return render(request, 'emp/home.html', context)
-
-
+    
 @login_required
 def edit_employee(request, employee_id):
     if request.method == 'POST':
