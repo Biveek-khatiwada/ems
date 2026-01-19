@@ -697,3 +697,35 @@ def complete_profile(request):
         messages.success(request,'Profile completed successfully!')
         return redirect('emp:home_page')
     return render(request, 'emp/complete_profile.html')
+
+@login_required
+def my_profile(request):
+    try:
+        custom_user = request.user.custom_user_profile
+    except CustomUser.DoesNotExist:
+        messages.error(request, 'Profile not found. Please contact administrator.')
+        return redirect('emp:home_page')
+    
+    if request.method == 'POST':
+        # Handle profile update
+        user = request.user
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.save()
+        
+        custom_user.phone_number = request.POST.get('phone_number', custom_user.phone_number)
+        custom_user.address = request.POST.get('address', custom_user.address)
+        custom_user.save()
+        
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('emp:my_profile')
+    
+    return render(request, 'emp/my_profile.html', {
+        'custom_user': custom_user,
+        'user_role': custom_user.role,
+        'user_department': custom_user.department,
+        'is_superadmin': custom_user.role == 'admin' and request.user.is_superuser,
+        'is_manager': custom_user.role == 'manager',
+        'is_employee': custom_user.role == 'employee',
+    })
