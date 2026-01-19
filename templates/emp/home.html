@@ -821,6 +821,87 @@
 .form-group {
   margin-bottom: 15px;
 }
+/* Role-specific badges */
+.role-display {
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 10px;
+}
+
+.role-display-admin {
+    background: linear-gradient(135deg, #7209b7 0%, #5e0896 100%);
+    color: white;
+}
+
+.role-display-manager {
+    background: linear-gradient(135deg, #4361ee 0%, #3a56d4 100%);
+    color: white;
+}
+
+.role-display-employee {
+    background: linear-gradient(135deg, #06d6a0 0%, #05c190 100%);
+    color: white;
+}
+
+/* Permission-based styles */
+.permission-required {
+    position: relative;
+}
+
+.permission-required.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.permission-hint {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--dark);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    z-index: 100;
+    display: none;
+}
+
+.permission-hint::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--dark);
+}
+
+.permission-required.disabled:hover .permission-hint {
+    display: block;
+}
+
+/* Department badge for manager */
+.department-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(67, 97, 238, 0.1);
+    color: var(--primary);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 10px;
+}
     </style>
   </head>
   <body>
