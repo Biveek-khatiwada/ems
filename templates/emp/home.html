@@ -1017,7 +1017,6 @@
     </div>
 </div>
 
-      <!-- Filter Section -->
     <!-- Filter Section -->
 {% if is_superadmin or is_manager %}
 <div class="filter-section">
@@ -1086,56 +1085,99 @@
 </div>
 {% endif %}
 
-      <!-- Department Cards -->
-      {% if departments %}
-      <div class="department-cards">
-        {% for dept in departments %}
-        <div class="department-card">
-          <div class="dept-header">
+      
+     <!-- Department Cards -->
+{% if is_superadmin and departments %}
+<div class="department-cards">
+    {% for dept in departments %}
+    <div class="department-card">
+        <div class="dept-header">
             <div class="dept-code">{{ dept.code }}</div>
             {% if dept.is_active %}
             <span class="badge badge-success">Active</span>
             {% else %}
             <span class="badge badge-danger">Inactive</span>
             {% endif %}
-          </div>
-          <div class="dept-name">{{ dept.name }}</div>
-          <div class="dept-manager">
+        </div>
+        <div class="dept-name">{{ dept.name }}</div>
+        <div class="dept-manager">
             <i class="fas fa-user-tie"></i>
             {% if dept.manager %}
             {{ dept.manager.user.get_full_name|default:dept.manager.user.username }}
             {% else %}
             No Manager Assigned
             {% endif %}
-          </div>
-          {% if dept.description %}
-          <p style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;">
-            {{ dept.description|truncatewords:20 }}
-          </p>
-          {% endif %}
-          <div class="dept-stats">
-            <div style="text-align: center;">
-              <div style="font-size: 1.5rem; font-weight: 700;">{{ dept.employee_count }}</div>
-              <div style="font-size: 0.8rem; color: var(--gray);">Employees</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 1.5rem; font-weight: 700;">
-                {{ dept.get_active_employees.count|default:0 }}
-              </div>
-              <div style="font-size: 0.8rem; color: var(--gray);">Active</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 1.5rem; font-weight: 700;">
-                {{ dept.created_at|date:"M Y" }}
-              </div>
-              <div style="font-size: 0.8rem; color: var(--gray);">Created</div>
-            </div>
-          </div>
         </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
+        {% if dept.description %}
+        <p style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;">
+            {{ dept.description|truncatewords:20 }}
+        </p>
+        {% endif %}
+        <div class="dept-stats">
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700;">{{ dept.dept_employee_count }}</div>
+                <div style="font-size: 0.8rem; color: var(--gray);">Employees</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700;">
+                    {{ dept.get_active_employees.count|default:0 }}
+                </div>
+                <div style="font-size: 0.8rem; color: var(--gray);">Active</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700;">
+                    {{ dept.created_at|date:"M Y" }}
+                </div>
+                <div style="font-size: 0.8rem; color: var(--gray);">Created</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% elif is_manager and user_department %}
+<div style="margin-bottom: 30px; text-align: center;">
+    <div class="department-card" style="max-width: 500px; margin: 0 auto;">
+        <div class="dept-header">
+            <div class="dept-code">{{ user_department.code }}</div>
+            {% if user_department.is_active %}
+            <span class="badge badge-success">Active</span>
+            {% else %}
+            <span class="badge badge-danger">Inactive</span>
+            {% endif %}
+        </div>
+        <div class="dept-name">{{ user_department.name }}</div>
+        <div class="dept-manager">
+            <i class="fas fa-user-tie"></i>
+            {% if user_department.manager %}
+                {{ user_department.manager.user.get_full_name|default:user_department.manager.user.username }}
+            {% else %}
+                No Manager Assigned
+            {% endif %}
+        </div>
+        {% if user_department.description %}
+        <p style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;">
+            {{ user_department.description }}
+        </p>
+        {% endif %}
+        <div class="dept-stats">
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700;">{{ total_employees }}</div>
+                <div style="font-size: 0.8rem; color: var(--gray);">Employees</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700;">{{ active_employees }}</div>
+                <div style="font-size: 0.8rem; color: var(--gray);">Active</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700;">
+                    {{ user_department.created_at|date:"M Y" }}
+                </div>
+                <div style="font-size: 0.8rem; color: var(--gray);">Created</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
       <!-- Employee Table -->
       <div class="card">
         <div class="card-header">
