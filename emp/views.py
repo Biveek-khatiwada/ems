@@ -13,8 +13,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
+from django.contrib.auth import authenticate, login, logout
 
-# views.py
 def home_page(request):
     try:
         # Get the logged-in user's custom profile
@@ -645,3 +645,29 @@ def delete_department(request, department_id):
             }, status=500)
     
     return JsonResponse({'success': False, 'message': 'Invalid request'}, status=400)
+
+# user login and logout functions 
+@never_cache
+def user_login(request):
+    if request.user.is_authenticated:
+        return redirect('emp:home_page')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('passowrd')
+        user = authenticate(request,username=username,password=password)
+        if user is not None:
+            login(request,user)
+            messages.success(request,f"welcome back, {user.get_full_name() or user.username }!")
+            
+            try:
+                custom_user = user.custom_user_profile
+                return redirect('emp:home_page')
+            except:
+                messages.info(request,'Please contact admin to set up your employee profile.')
+                return redirect('emp:complete_profile')
+        else:
+            messages.error(request,"Invalid username or Password.")
+    
+    return render(request, 'emp/login.html')
+
