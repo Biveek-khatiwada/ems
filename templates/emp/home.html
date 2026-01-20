@@ -969,11 +969,11 @@
           </a>
           {% endif %}
           
-          <!-- Export button - only for admin and managers -->
-          {% if is_superadmin or is_manager %}
-          <button class="btn btn-outline" onclick="exportData()">
-            <i class="fas fa-download"></i> Export
-          </button>
+
+          {% if is_manager %}
+          <a href="{% url 'emp:attendance_dashboard' %}" class="btn btn-outline" style="text-decoration: none;">
+            <i class="fas fa-building"></i> Attendance Dashboard
+          </a>
           {% endif %}
 
            <!-- Login/Logout buttons -->
