@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.contrib.auth import authenticate, login, logout
 import json
-
+from datetime import datetime
 @login_required
 def home_page(request):
     try:
@@ -143,7 +143,7 @@ def home_page(request):
         context = {
             'emp_details': page_obj,
             'emp_count': total_employees,
-            'current_time': datetime.datetime.now(),
+           # 'current_time': datetime.datetime.now(),
             'departments': departments,
             'total_employees': total_employees,
             'active_employees': active_employees,
@@ -739,13 +739,14 @@ def my_profile(request):
 @login_required
 def attendance_dashboard(request):
     """Attendance dashboard for managers"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         messages.error(request, "Only managers can access attendance dashboard")
         return redirect('emp:home_page')
     
     manager = request.user.custom_user_profile
     department = manager.department
     
+    # Get selected date or use today
     date_str = request.GET.get('date')
     if date_str:
         try:
@@ -764,21 +765,12 @@ def attendance_dashboard(request):
         employee__department=department
     ).select_related('employee')
     
-    
-    attendance_dict = {att.employee_id: att for att in today_attendance}
-    
     # Calculate statistics
     present_today = today_attendance.filter(status='present').count()
     absent_today = employees.count() - present_today
     late_today = today_attendance.filter(status='late').count()
     
-    # Get pending leave requests
-    pending_leave_requests = LeaveRequest.objects.filter(
-        employee__department=department,
-        status='pending'
-    ).select_related('employee')[:5]
-    
-
+    # Calculate percentages
     if employees.count() > 0:
         present_percentage = round((present_today / employees.count()) * 100, 1)
         absent_percentage = round((absent_today / employees.count()) * 100, 1)
@@ -789,23 +781,22 @@ def attendance_dashboard(request):
     context = {
         'today': selected_date,
         'employees': employees,
-        'today_attendance': today_attendance,
-        'today_attendance_dict': attendance_dict,  # Add this
+        'today_attendance': today_attendance, 
         'present_today': present_today,
         'absent_today': absent_today,
         'late_today': late_today,
         'department': department,
-        'pending_leave_requests': pending_leave_requests,
         'present_percentage': present_percentage,
         'absent_percentage': absent_percentage,
+        #'today':datetime.now()
     }
     
-    return render(request, 'emp/attendance_dashboard.html', context)
+    return render(request, 'emp/attendence_dashboard.html', context)
 
 @login_required
 def mark_attendance(request):
     """Mark attendance for employees"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         return JsonResponse({'success': False, 'error': 'Permission denied'})
     
     if request.method == 'POST':
@@ -852,7 +843,7 @@ def mark_attendance(request):
 @login_required
 def bulk_mark_attendance(request):
     """Bulk mark attendance for multiple employees"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         messages.error(request, "Permission denied")
         return redirect('emp:attendance_dashboard')
     
@@ -891,7 +882,7 @@ def bulk_mark_attendance(request):
 @login_required
 def attendance_report(request, employee_id=None):
     """Generate attendance reports"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         messages.error(request, "Only managers can view reports")
         return redirect('emp:home_page')
     
@@ -946,7 +937,7 @@ def attendance_report(request, employee_id=None):
 @login_required
 def manage_leave_requests(request):
     """Manage leave requests (approve/reject)"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         messages.error(request, "Only managers can manage leave requests")
         return redirect('emp:home_page')
     
@@ -1007,7 +998,7 @@ from emp.models import CustomUser, Department, Attendance, AttendanceSettings ,L
 @login_required
 def attendance_settings(request):
     """Configure attendance settings for department"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         messages.error(request, "Only managers can configure settings")
         return redirect('emp:home_page')
     
@@ -1060,7 +1051,7 @@ def attendance_settings(request):
 @login_required
 def get_employee_attendance(request, employee_id):
     """API endpoint to get employee attendance data"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         return JsonResponse({'success': False, 'error': 'Permission denied'})
     
     try:
@@ -1106,7 +1097,7 @@ def get_employee_attendance(request, employee_id):
 @login_required
 def monthly_attendance_summary(request):
     """API endpoint to get monthly attendance summary"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         return JsonResponse({'success': False, 'error': 'Permission denied'})
     
     try:
@@ -1151,7 +1142,7 @@ def monthly_attendance_summary(request):
 @login_required
 def get_daily_attendance(request):
     """Get attendance for a specific date"""
-    if not request.user.custom_user_profile.is_manager:
+    if not request.user.custom_user_profile.is_department_manager:
         return JsonResponse({'success': False, 'error': 'Permission denied'})
     
     try:
