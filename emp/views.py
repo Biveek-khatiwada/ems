@@ -929,3 +929,62 @@ def attendance_report(request, employee_id=None):
     }
     
     return render(request, 'emp/attendance_report.html', context)
+
+
+@login_required
+def manage_leave_requests(request):
+    """Manage leave requests (approve/reject)"""
+    if not request.user.custom_user_profile.is_manager:
+        messages.error(request, "Only managers can manage leave requests")
+        return redirect('emp:home_page')
+    
+    manager = request.user.custom_user_profile
+    department = manager.department
+    
+    leave_requests = LeaveRequest.objects.filter(
+        employee__department=department
+    ).select_related('employee').order_by('-created_at')
+    
+    if request.method == 'POST':
+        leave_id = request.POST.get('leave_id')
+        action = request.POST.get('action') 
+        notes = request.POST.get('notes', '')
+        
+        try:
+            leave_request = LeaveRequest.objects.get(id=leave_id)
+            
+            if action == 'approve':
+                leave_request.status = 'approved'
+                # Mark attendance as leave for the period
+                current_date = leave_request.start_date
+                while current_date <= leave_request.end_date:
+                    Attendance.objects.update_or_create(
+                        employee=leave_request.employee,
+                        date=current_date,
+                        defaults={
+                            'status': 'leave',
+                            'notes': f'Approved {leave_request.get_leave_type_display()}',
+                            'marked_by': request.user
+                        }
+                    )
+                    current_date += timedelta(days=1)
+                
+                messages.success(request, f"Leave request approved for {leave_request.employee.user.get_full_name()}")
+            else:
+                leave_request.status = 'rejected'
+                messages.success(request, f"Leave request rejected for {leave_request.employee.user.get_full_name()}")
+            
+            leave_request.reviewed_by = request.user
+            leave_request.reviewed_at = timezone.now()
+            leave_request.response_notes = notes
+            leave_request.save()
+            
+        except LeaveRequest.DoesNotExist:
+            messages.error(request, "Leave request not found")
+    
+    context = {
+        'leave_requests': leave_requests,
+        'department': department,
+    }
+    
+    return render(request, 'emp/manage_leaves.html', context)
