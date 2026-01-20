@@ -875,3 +875,57 @@ def bulk_mark_attendance(request):
             messages.error(request, f'Error: {str(e)}')
     
     return redirect('emp:attendance_dashboard')
+
+@login_required
+def attendance_report(request, employee_id=None):
+    """Generate attendance reports"""
+    if not request.user.custom_user_profile.is_manager:
+        messages.error(request, "Only managers can view reports")
+        return redirect('emp:home_page')
+    
+    manager = request.user.custom_user_profile
+    department = manager.department
+    
+    month = request.GET.get('month', timezone.now().month)
+    year = request.GET.get('year', timezone.now().year)
+    employee_filter = request.GET.get('employee', 'all')
+
+    if employee_id:
+        employee = get_object_or_404(CustomUser, id=employee_id, department=department)
+        attendances = Attendance.objects.filter(
+            employee=employee,
+            date__year=year,
+            date__month=month
+        ).order_by('date')
+        selected_employee = employee
+    else:
+        attendances = Attendance.objects.filter(
+            employee__department=department,
+            date__year=year,
+            date__month=month
+        ).select_related('employee').order_by('date')
+        selected_employee = None
+    
+    
+    summary = {
+        'total_days': attendances.count(),
+        'present': attendances.filter(status='present').count(),
+        'absent': attendances.filter(status='absent').count(),
+        'leave': attendances.filter(status='leave').count(),
+        'half_day': attendances.filter(status='half_day').count(),
+    }
+    
+    
+    employees = CustomUser.objects.filter(department=department, is_active=True)
+    
+    context = {
+        'attendances': attendances,
+        'summary': summary,
+        'month': month,
+        'year': year,
+        'employees': employees,
+        'selected_employee': selected_employee,
+        'employee_filter': employee_filter,
+    }
+    
+    return render(request, 'emp/attendance_report.html', context)
