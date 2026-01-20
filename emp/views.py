@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect,get_object_or_404,HttpResponse
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.utils import timezone
+from datetime import date, timedelta
 import datetime
-from emp.models import CustomUser, Department
+from emp.models import CustomUser, Department,Attendance, Attendancesettings,LeaveRequest
 from emp.forms import CustomUserCreationForm
 from django.http import JsonResponse
 from django.contrib import messages
@@ -730,3 +732,59 @@ def my_profile(request):
         'is_manager': custom_user.role == 'manager',
         'is_employee': custom_user.role == 'employee',
     })
+    
+# attendence
+
+@login_required
+def attendance_dashboard(request):
+    """Attendance dashboard for managers"""
+    if not request.user.custom_user_profile.is_manager:
+        messages.error(request, "Only managers can access attendance dashboard")
+        return redirect('emp:home_page')
+    
+    manager = request.user.custom_user_profile
+    department = manager.department
+    
+    
+    today = timezone.now().date()
+    
+
+    start_of_week = today - timedelta(days=today.weekday())
+    week_dates = [start_of_week + timedelta(days=i) for i in range(7)]
+    
+    
+    employees = CustomUser.objects.filter(department=department, is_active=True)
+    
+
+    today_attendance = Attendance.objects.filter(
+        date=today,
+        employee__department=department
+    ).select_related('employee')
+    
+    week_attendance = Attendance.objects.filter(
+        date__gte=start_of_week,
+        date__lte=today,
+        employee__department=department
+    )
+    
+    
+    present_today = today_attendance.filter(status='present').count()
+    absent_today = employees.count() - present_today
+    late_today = today_attendance.filter(
+        check_in__gt=department.attendance_settings.late_threshold
+    ).count()
+    
+    context = {
+        'today': today,
+        'employees': employees,
+        'today_attendance': today_attendance,
+        'week_dates': week_dates,
+        'week_attendance': week_attendance,
+        'present_today': present_today,
+        'absent_today': absent_today,
+        'late_today': late_today,
+        'department': department,
+        'attendance_settings': department.attendance_settings if hasattr(department, 'attendance_settings') else None,
+    }
+    
+    return render(request, 'emp/attendance_dashboard.html', context)
