@@ -18,6 +18,7 @@ from django.views.decorators.cache import never_cache
 from django.contrib.auth import authenticate, login, logout
 import json
 from datetime import datetime
+
 @login_required
 def home_page(request):
     try:
@@ -143,7 +144,7 @@ def home_page(request):
         context = {
             'emp_details': page_obj,
             'emp_count': total_employees,
-           # 'current_time': datetime.datetime.now(),
+            #'current_time': datetime.datetime.now(),
             'departments': departments,
             'total_employees': total_employees,
             'active_employees': active_employees,
@@ -173,7 +174,7 @@ def home_page(request):
         context = {
             'emp_details': [],
             'emp_count': 0,
-            'current_time': datetime.datetime.now(),
+            #'current_time': datetime.datetime.now(),
             'departments': Department.objects.all(),
             'total_employees': 0,
             'active_employees': 0,
