@@ -29,7 +29,8 @@ urlpatterns = [
     path('attendance/leaves/', views.manage_leave_requests, name='manage_leaves'),
     path('attendance/settings/', views.attendance_settings, name='attendance_settings'),
     
-    # API endpoints for AJAX calls
+    # API endpoints
+    path('api/attendance/daily/', views.get_daily_attendance, name='api_daily_attendance'),
     path('api/attendance/employee/<int:employee_id>/', views.get_employee_attendance, name='api_employee_attendance'),
     path('api/attendance/monthly-summary/', views.monthly_attendance_summary, name='api_monthly_summary'),
 ]
