@@ -976,6 +976,12 @@
           </a>
           {% endif %}
 
+           {% if is_manager %}
+            <a href="{% url 'emp:attendance_report' %}" class="action-btn action-btn-primary" style="margin-left: 10px; text-decoration: none;">
+                <i class="fas fa-chart-bar"></i> Attendance Report
+            </a>
+                {% endif %}
+
            <!-- Login/Logout buttons -->
           {% if request.user.is_authenticated %}
              
