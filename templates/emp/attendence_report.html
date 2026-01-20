@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Reports | Employee Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #06d6a0;
+            --danger: #ef476f;
+            --warning: #ffd166;
+            --info: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --border: #dee2e6;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --radius: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fb 0%, #eef2ff 100%);
+            min-height: 100vh;
+            color: var(--dark);
+        }
+
+        .reports-container {
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Page Header */
+        .page-header {
+            margin-bottom: 30px;
+            padding: 30px;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, transparent 30%, rgba(67, 97, 238, 0.05) 100%);
+            border-radius: 50%;
+        }
+
+        .page-header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--dark), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header h1 i {
+            color: white;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.3);
+        }
+
+        .page-description {
+            color: var(--gray);
+            font-size: 1.1rem;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        /* Report Filters */
+        .report-filters {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .filters-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group label i {
+            color: var(--primary);
+        }
+
+        .filter-control {
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .filter-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .filter-control:hover {
+            border-color: var(--primary);
+        }
+
+        /* Report Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            transition: all 0.4s ease;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .summary-card:hover::before {
+            opacity: 1;
+        }
+
+        .summary-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            color: white;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
+        }
+
+        .summary-content {
+            flex: 1;
+        }
+
+        .summary-value {
+            font-size: 3.2rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--dark), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .summary-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray);
+            margin-bottom: 10px;
+        }
+
+        .summary-details {
+            font-size: 0.9rem;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-details i {
+            color: var(--primary);
+        }
+
+        /* Charts Section */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .chart-header h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--gray);
+        }
+
+        .chart-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .chart-wrapper {
+            height: 300px;
+            position: relative;
+        }
+
+        /* Detailed Report */
+        .detailed-report {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .report-header h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .action-btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .action-btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+        }
+
+        .action-btn-success {
+            background: linear-gradient(135deg, var(--success), #05c190);
+            color: white;
+            box-shadow: 0 4px 15px rgba(6, 214, 160, 0.3);
+        }
+
+        .action-btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(6, 214, 160, 0.4);
+        }
+
+        .action-btn-secondary {
+            background: white;
+            color: var(--dark);
+            border: 2px solid var(--border);
+        }
+
+        .action-btn-secondary:hover {
+            background: var(--light);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .report-table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95rem;
+        }
+
+        .report-table thead {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        }
+
+        .report-table th {
+            padding: 20px;
+            text-align: left;
+            font-weight: 700;
+            color: white;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .report-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .report-table tbody tr:nth-child(even) {
+            background: var(--light);
+        }
+
+        .report-table tbody tr:hover {
+            background: linear-gradient(90deg, rgba(67, 97, 238, 0.1), transparent);
+            transform: scale(1.002);
+        }
+
+        .report-table td {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .employee-cell {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .employee-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            box-shadow: 0 3px 10px rgba(67, 97, 238, 0.2);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-present {
+            background: linear-gradient(135deg, rgba(6, 214, 160, 0.15), rgba(6, 214, 160, 0.05));
+            color: var(--success);
+            border: 1px solid rgba(6, 214, 160, 0.3);
+        }
+
+        .badge-absent {
+            background: linear-gradient(135deg, rgba(239, 71, 111, 0.15), rgba(239, 71, 111, 0.05));
+            color: var(--danger);
+            border: 1px solid rgba(239, 71, 111, 0.3);
+        }
+
+        .badge-late {
+            background: linear-gradient(135deg, rgba(255, 209, 102, 0.15), rgba(255, 209, 102, 0.05));
+            color: var(--warning);
+            border: 1px solid rgba(255, 209, 102, 0.3);
+        }
+
+        .badge-leave {
+            background: linear-gradient(135deg, rgba(76, 201, 240, 0.15), rgba(76, 201, 240, 0.05));
+            color: var(--info);
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+
+        .badge-half-day {
+            background: linear-gradient(135deg, rgba(114, 9, 183, 0.15), rgba(114, 9, 183, 0.05));
+            color: var(--secondary);
+            border: 1px solid rgba(114, 9, 183, 0.3);
+        }
+
+        .hours-cell {
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        /* Export Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, var(--light), white);
+        }
+
+        .modal-header h3 {
+            font-size: 1.5rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--gray);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .close-modal:hover {
+            color: var(--danger);
+            background: rgba(239, 71, 111, 0.1);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: var(--light);
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group label i {
+            color: var(--primary);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+        }
+
+        .radio-option span {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .page-btn {
+            padding: 10px 16px;
+            border: 2px solid var(--border);
+            background: white;
+            color: var(--dark);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-btn:hover:not(.disabled) {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .page-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-numbers {
+            display: flex;
+            gap: 5px;
+        }
+
+        .page-number {
+            padding: 10px 16px;
+            border: 2px solid var(--border);
+            background: white;
+            color: var(--dark);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .page-number:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .page-number.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-card {
+                min-width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .reports-container {
+                padding: 15px;
+            }
+            
+            .page-header {
+                padding: 25px 20px;
+            }
+            
+            .page-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-actions,
+            .report-actions {
+                width: 100%;
+            }
+            
+            .action-btn {
+                flex: 1;
+                justify-content: center;
+            }
+            
+            .report-table {
+                font-size: 0.85rem;
+            }
+            
+            .employee-cell {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .summary-card {
+                flex-direction: column;
+                text-align: center;
+                padding: 25px;
+            }
+            
+            .summary-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 1.8rem;
+            }
+            
+            .summary-value {
+                font-size: 2.5rem;
+            }
+            
+            .chart-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .chart-controls {
+                align-self: flex-end;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+            color: var(--primary);
+        }
+
+        .empty-state h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin: 0 auto 25px;
+            line-height: 1.6;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid var(--light);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Date Range Picker Styles */
+        .date-range-picker {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            height: 8px;
+            background: var(--gray-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-present { background: var(--success); }
+        .progress-absent { background: var(--danger); }
+        .progress-late { background: var(--warning); }
+        .progress-leave { background: var(--info); }
+    </style>
+</head>
+<body>
+    
+    <div class="reports-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><i class="fas fa-chart-bar"></i> Attendance Reports</h1>
+            <p class="page-description">
+                Comprehensive attendance analytics, detailed reports, and insightful statistics. 
+                Filter by date, department, or employee to analyze attendance patterns and trends.
+            </p>
+        </div>
+
+        <!-- Report Filters -->
+        <div class="report-filters">
+            <div class="filters-header">
+                <h2><i class="fas fa-filter"></i> Report Filters</h2>
+                <div class="filter-actions">
+                    <button type="button" onclick="applyFilters()" class="action-btn action-btn-primary">
+                        <i class="fas fa-search"></i> Generate Report
+                    </button>
+                    <button type="button" onclick="resetFilters()" class="action-btn action-btn-secondary">
+                        <i class="fas fa-redo"></i> Reset Filters
+                    </button>
+                </div>
+            </div>
+            
+            <form id="reportFilters" method="GET" action="">
+                <div class="filter-form">
+                    <!-- Date Range -->
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar-alt"></i> Date Range</label>
+                        <div class="date-range-picker">
+                            <input type="date" name="start_date" class="filter-control" 
+                                   value="{{ start_date|date:'Y-m-d' }}" id="startDate">
+                            <input type="date" name="end_date" class="filter-control" 
+                                   value="{{ end_date|date:'Y-m-d' }}" id="endDate">
+                        </div>
+                    </div>
+                    
+                    <!-- Department -->
+                    <div class="filter-group">
+                        <label><i class="fas fa-building"></i> Department</label>
+                        <select name="department" class="filter-control" id="departmentFilter">
+                            <option value="">All Departments</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}" {% if selected_department == dept.id %}selected{% endif %}>
+                                {{ dept.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Employee -->
+                    <div class="filter-group">
+                        <label><i class="fas fa-user"></i> Employee</label>
+                        <select name="employee" class="filter-control" id="employeeFilter">
+                            <option value="">All Employees</option>
+                            {% for emp in all_employees %}
+                            <option value="{{ emp.id }}" {% if selected_employee == emp.id %}selected{% endif %}>
+                                {{ emp.user.get_full_name|default:emp.user.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Status -->
+                    <div class="filter-group">
+                        <label><i class="fas fa-circle"></i> Status</label>
+                        <select name="status" class="filter-control" id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="present" {% if selected_status == 'present' %}selected{% endif %}>Present</option>
+                            <option value="absent" {% if selected_status == 'absent' %}selected{% endif %}>Absent</option>
+                            <option value="late" {% if selected_status == 'late' %}selected{% endif %}>Late</option>
+                            <option value="leave" {% if selected_status == 'leave' %}selected{% endif %}>On Leave</option>
+                            <option value="half_day" {% if selected_status == 'half_day' %}selected{% endif %}>Half Day</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="summary-icon" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark));">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="summary-content">
+                    <div class="summary-value" id="totalEmployees">{{ summary.total_employees|default:0 }}</div>
+                    <div class="summary-label">Total Employees</div>
+                    <div class="summary-details">
+                        <i class="fas fa-chart-line"></i>
+                        <span>{{ summary.active_employees|default:0 }} Active • {{ summary.inactive_employees|default:0 }} Inactive</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-icon" style="background: linear-gradient(135deg, var(--success), #05c190);">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <div class="summary-content">
+                    <div class="summary-value" id="presentCount">{{ summary.present_count|default:0 }}</div>
+                    <div class="summary-label">Total Present Days</div>
+                    <div class="summary-details">
+                        <i class="fas fa-percentage"></i>
+                        <span>{{ summary.present_percentage|default:0 }}% Attendance Rate</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-present" style="width: {{ summary.present_percentage|default:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-icon" style="background: linear-gradient(135deg, var(--danger), #e6355e);">
+                    <i class="fas fa-user-times"></i>
+                </div>
+                <div class="summary-content">
+                    <div class="summary-value" id="absentCount">{{ summary.absent_count|default:0 }}</div>
+                    <div class="summary-label">Total Absent Days</div>
+                    <div class="summary-details">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>{{ summary.absent_percentage|default:0 }}% Absenteeism Rate</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-absent" style="width: {{ summary.absent_percentage|default:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-icon" style="background: linear-gradient(135deg, var(--warning), #e6b400);">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="summary-content">
+                    <div class="summary-value" id="lateCount">{{ summary.late_count|default:0 }}</div>
+                    <div class="summary-label">Late Arrivals</div>
+                    <div class="summary-details">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span>{{ summary.late_percentage|default:0 }}% Late Arrival Rate</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-late" style="width: {{ summary.late_percentage|default:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-pie"></i> Attendance Distribution</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn" onclick="downloadChart('attendanceChart')" title="Download Chart">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="chart-btn" onclick="refreshChart('attendanceChart')" title="Refresh Chart">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Daily Attendance Trend</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn" onclick="downloadChart('dailyTrendChart')" title="Download Chart">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="chart-btn" onclick="refreshChart('dailyTrendChart')" title="Refresh Chart">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="dailyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Report -->
+        <div class="detailed-report">
+            <div class="report-header">
+                <h2><i class="fas fa-list-alt"></i> Detailed Attendance Report</h2>
+                <div class="report-actions">
+                    <button onclick="showExportModal()" class="action-btn action-btn-success">
+                        <i class="fas fa-file-export"></i> Export Report
+                    </button>
+                    <button onclick="printReport()" class="action-btn action-btn-secondary">
+                        <i class="fas fa-print"></i> Print Report
+                    </button>
+                    {% if selected_employee_obj %}
+                    <a href="{% url 'emp:attendance_dashboard' %}" class="action-btn action-btn-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if attendances %}
+            <div class="report-info" style="margin-bottom: 20px; padding: 15px; background: var(--light); border-radius: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="font-weight: 600; color: var(--dark);">
+                        <i class="fas fa-info-circle"></i>
+                        Showing {{ attendances|length }} records
+                        {% if selected_employee_obj %}
+                        for {{ selected_employee_obj.user.get_full_name|default:selected_employee_obj.user.username }}
+                        {% endif %}
+                        from {{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}
+                    </div>
+                    <div style="font-size: 0.9rem; color: var(--gray);">
+                        Generated on {{ current_time|date:"F d, Y h:i A" }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-table-container">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Total Hours</th>
+                            <th>Department</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for att in attendances %}
+                        <tr>
+                            <td>
+                                <div class="employee-cell">
+                                    <img src="https://ui-avatars.com/api/?name={{ att.employee.user.get_full_name|default:att.employee.user.username|urlencode }}&background=random&size=45"
+                                         alt="{{ att.employee.user.username }}"
+                                         class="employee-avatar">
+                                    <div>
+                                        <div style="font-weight: 700;">{{ att.employee.user.get_full_name|default:att.employee.user.username }}</div>
+                                        <div style="font-size: 0.85rem; color: var(--gray);">@{{ att.employee.user.username }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600;">{{ att.date|date:"M d, Y" }}</div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">{{ att.date|date:"l" }}</div>
+                            </td>
+                            <td>
+                                <span class="status-badge badge-{{ att.status }}">
+                                    <i class="fas fa-{% if att.status == 'present' %}check-circle{% elif att.status == 'absent' %}times-circle{% elif att.status == 'late' %}clock{% elif att.status == 'leave' %}umbrella-beach{% else %}adjust{% endif %}"></i>
+                                    {{ att.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if att.check_in %}
+                                <div style="font-weight: 600;">{{ att.check_in|time:"h:i A" }}</div>
+                                {% else %}
+                                <span style="color: var(--gray);">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if att.check_out %}
+                                <div style="font-weight: 600;">{{ att.check_out|time:"h:i A" }}</div>
+                                {% else %}
+                                <span style="color: var(--gray);">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="hours-cell">
+                                {% if att.total_hours %}
+                                {{ att.total_hours }} hrs
+                                {% else %}
+                                <span style="color: var(--gray);">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if att.employee.department %}
+                                <span style="font-weight: 600; color: var(--primary);">{{ att.employee.department.name }}</span>
+                                {% else %}
+                                <span style="color: var(--gray);">No Department</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if att.notes %}
+                                <span title="{{ att.notes }}" style="cursor: help;">
+                                    {{ att.notes|truncatechars:30 }}
+                                </span>
+                                {% else %}
+                                <span style="color: var(--gray);">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj and page_obj.has_other_pages %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                <button class="page-btn" onclick="goToPage(1)">
+                    <i class="fas fa-angle-double-left"></i> First
+                </button>
+                <button class="page-btn" onclick="goToPage({{ page_obj.previous_page_number }})">
+                    <i class="fas fa-angle-left"></i> Previous
+                </button>
+                {% else %}
+                <button class="page-btn disabled">
+                    <i class="fas fa-angle-double-left"></i> First
+                </button>
+                <button class="page-btn disabled">
+                    <i class="fas fa-angle-left"></i> Previous
+                </button>
+                {% endif %}
+                
+                <div class="page-numbers">
+                    {% for i in page_obj.paginator.page_range %}
+                        {% if page_obj.number == i %}
+                        <span class="page-number active">{{ i }}</span>
+                        {% else %}
+                        <button class="page-number" onclick="goToPage({{ i }})">{{ i }}</button>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                
+                {% if page_obj.has_next %}
+                <button class="page-btn" onclick="goToPage({{ page_obj.next_page_number }})">
+                    Next <i class="fas fa-angle-right"></i>
+                </button>
+                <button class="page-btn" onclick="goToPage({{ page_obj.paginator.num_pages }})">
+                    Last <i class="fas fa-angle-double-right"></i>
+                </button>
+                {% else %}
+                <button class="page-btn disabled">
+                    Next <i class="fas fa-angle-right"></i>
+                </button>
+                <button class="page-btn disabled">
+                    Last <i class="fas fa-angle-double-right"></i>
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <h3>No Attendance Records Found</h3>
+                <p>No attendance records match your current filters. Try adjusting your date range or filters to see results.</p>
+                <button onclick="resetFilters()" class="action-btn action-btn-primary" style="margin-top: 15px;">
+                    <i class="fas fa-redo"></i> Reset Filters
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-export"></i> Export Report</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="form-group">
+                        <label><i class="fas fa-file"></i> Export Format</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="exportFormat" value="csv" checked>
+                                <span>CSV (Excel)</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="exportFormat" value="pdf">
+                                <span>PDF Document</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="exportFormat" value="excel">
+                                <span>Excel Workbook</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-columns"></i> Columns to Include</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="columns" value="employee" checked>
+                                <span>Employee Details</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="columns" value="date" checked>
+                                <span>Date</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="columns" value="status" checked>
+                                <span>Status</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="columns" value="time" checked>
+                                <span>Time Details</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="columns" value="department" checked>
+                                <span>Department</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="columns" value="notes" checked>
+                                <span>Notes</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-chart-bar"></i> Include Charts</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="includeCharts" value="yes" checked>
+                                <span>Yes</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="includeCharts" value="no">
+                                <span>No</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-sort-amount-down"></i> Sort By</label>
+                        <select name="sortBy" class="filter-control">
+                            <option value="date">Date (Newest First)</option>
+                            <option value="date_asc">Date (Oldest First)</option>
+                            <option value="employee">Employee Name</option>
+                            <option value="status">Status</option>
+                            <option value="department">Department</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-btn action-btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="button" class="action-btn action-btn-success" onclick="exportReport()">
+                    <i class="fas fa-download"></i> Export Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart instances
+        let attendanceChart = null;
+        let dailyTrendChart = null;
+
+        // Initialize Charts
+        function initializeCharts() {
+            const ctx1 = document.getElementById('attendanceChart');
+            const ctx2 = document.getElementById('dailyTrendChart');
+            
+            // Destroy existing charts
+            if (attendanceChart) attendanceChart.destroy();
+            if (dailyTrendChart) dailyTrendChart.destroy();
+            
+            // Attendance Distribution Chart (Donut)
+            attendanceChart = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Present', 'Absent', 'On Leave', 'Half Day', 'Holiday', 'Weekend'],
+                    datasets: [{
+                        data: [
+                            {{ summary.present_count|default:0 }},
+                            {{ summary.absent_count|default:0 }},
+                            {{ summary.leave_count|default:0 }},
+                            {{ summary.half_day_count|default:0 }},
+                            {{ summary.holiday_count|default:0 }},
+                            {{ summary.weekend_count|default:0 }}
+                        ],
+                        backgroundColor: [
+                            'rgba(6, 214, 160, 0.9)',
+                            'rgba(239, 71, 111, 0.9)',
+                            'rgba(76, 201, 240, 0.9)',
+                            'rgba(114, 9, 183, 0.9)',
+                            'rgba(255, 107, 107, 0.9)',
+                            'rgba(108, 117, 125, 0.9)'
+                        ],
+                        borderColor: [
+                            'rgb(6, 214, 160)',
+                            'rgb(239, 71, 111)',
+                            'rgb(76, 201, 240)',
+                            'rgb(114, 9, 183)',
+                            'rgb(255, 107, 107)',
+                            'rgb(108, 117, 125)'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 13,
+                                    weight: '600'
+                                },
+                                color: 'var(--dark)'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label;
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true,
+                        duration: 1500
+                    },
+                    cutout: '65%'
+                }
+            });
+            
+            // Generate trend data for the selected date range
+            const startDate = new Date('{{ start_date|date:"Y-m-d" }}');
+            const endDate = new Date('{{ end_date|date:"Y-m-d" }}');
+            
+            const days = [];
+            const presentData = [];
+            const absentData = [];
+            const leaveData = [];
+            
+            // Generate dates between start and end
+            let currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                days.push(currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                
+                // In production, you would get real data from the backend
+                // For now, use random sample data
+                presentData.push(Math.floor(Math.random() * {{ summary.active_employees|default:10 }}) + 5);
+                absentData.push(Math.floor(Math.random() * 10) + 1);
+                leaveData.push(Math.floor(Math.random() * 5) + 1);
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            // Limit to 15 days for better visualization
+            if (days.length > 15) {
+                days.splice(15);
+                presentData.splice(15);
+                absentData.splice(15);
+                leaveData.splice(15);
+            }
+            
+            dailyTrendChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [
+                        {
+                            label: 'Present',
+                            data: presentData,
+                            borderColor: 'rgb(6, 214, 160)',
+                            backgroundColor: 'rgba(6, 214, 160, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: 'rgb(6, 214, 160)',
+                            pointBorderColor: 'white',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 10
+                        },
+                        {
+                            label: 'Absent',
+                            data: absentData,
+                            borderColor: 'rgb(239, 71, 111)',
+                            backgroundColor: 'rgba(239, 71, 111, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: 'rgb(239, 71, 111)',
+                            pointBorderColor: 'white',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 10
+                        },
+                        {
+                            label: 'On Leave',
+                            data: leaveData,
+                            borderColor: 'rgb(76, 201, 240)',
+                            backgroundColor: 'rgba(76, 201, 240, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: 'rgb(76, 201, 240)',
+                            pointBorderColor: 'white',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 10
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value;
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Number of Employees',
+                                color: 'var(--dark)',
+                                font: {
+                                    weight: '600',
+                                    size: 14
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                color: 'var(--dark)',
+                                font: {
+                                    weight: '600',
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 13,
+                                    weight: '600'
+                                },
+                                color: 'var(--dark)'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const form = document.getElementById('reportFilters');
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+            
+            // Add all form data to params
+            formData.forEach((value, key) => {
+                if (value) params.append(key, value);
+            });
+            
+            // Add current page if exists
+            const currentPage = new URLSearchParams(window.location.search).get('page');
+            if (currentPage && currentPage !== '1') {
+                params.append('page', currentPage);
+            }
+            
+            // Reload page with filters
+            window.location.href = `?${params.toString()}`;
+        }
+
+        // Reset filters
+        function resetFilters() {
+            // Clear all filter inputs
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('departmentFilter').value = '';
+            document.getElementById('employeeFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            
+            // Reload page without filters
+            window.location.href = window.location.pathname;
+        }
+
+        // Show export modal
+        function showExportModal() {
+            document.getElementById('exportModal').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('exportModal').classList.remove('active');
+        }
+
+        // Export report
+        function exportReport() {
+            const format = document.querySelector('input[name="exportFormat"]:checked').value;
+            const includeCharts = document.querySelector('input[name="includeCharts"]:checked').value === 'yes';
+            const sortBy = document.querySelector('select[name="sortBy"]').value;
+            
+            // Get selected columns
+            const selectedColumns = [];
+            document.querySelectorAll('input[name="columns"]:checked').forEach(checkbox => {
+                selectedColumns.push(checkbox.value);
+            });
+            
+            // Show loading state
+            showNotification('info', `Exporting report as ${format.toUpperCase()}...`);
+            
+            // In production, this would make an API call to generate the export
+            // For now, simulate export
+            setTimeout(() => {
+                const link = document.createElement('a');
+                link.href = '#';
+                link.download = `attendance_report_${new Date().toISOString().split('T')[0]}.${format}`;
+                link.click();
+                
+                showNotification('success', 'Report exported successfully!');
+                closeModal();
+            }, 1500);
+        }
+
+        // Print report
+        function printReport() {
+            window.print();
+        }
+
+        // Download chart
+        function downloadChart(chartId) {
+            const chart = chartId === 'attendanceChart' ? attendanceChart : dailyTrendChart;
+            if (chart) {
+                const link = document.createElement('a');
+                link.download = `${chartId}_${new Date().toISOString().split('T')[0]}.png`;
+                link.href = chart.toBase64Image();
+                link.click();
+                showNotification('success', 'Chart downloaded successfully!');
+            }
+        }
+
+        // Refresh chart
+        function refreshChart(chartId) {
+            if (chartId === 'attendanceChart') {
+                attendanceChart.update();
+            } else {
+                dailyTrendChart.update();
+            }
+            showNotification('info', 'Chart refreshed!');
+        }
+
+        // Go to page
+        function goToPage(page) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', page);
+            window.location.href = url.toString();
+        }
+
+        // Show notification
+        function showNotification(type, message) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.cssText = `
+                position: fixed;
+                top: 30px;
+                right: 30px;
+                padding: 20px 25px;
+                background: white;
+                color: var(--dark);
+                border-radius: var(--radius);
+                box-shadow: var(--shadow-lg);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 20px;
+                min-width: 350px;
+                z-index: 10000;
+                animation: slideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                border-left: 5px solid ${type === 'success' ? 'var(--success)' : 'var(--primary)'};
+            `;
+            
+            const icon = type === 'success' ? 'check-circle' : 'info-circle';
+            const iconColor = type === 'success' ? 'var(--success)' : 'var(--primary)';
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; background: ${iconColor};">
+                        <i class="fas fa-${icon}"></i>
+                    </div>
+                    <div>
+                        <strong style="display: block; margin-bottom: 5px; text-transform: capitalize;">${type}</strong>
+                        <span>${message}</span>
+                    </div>
+                </div>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.2rem; opacity: 0.7;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Initialize date pickers
+        function initializeDatePickers() {
+            const today = new Date();
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            
+            // Set max date to today
+            document.getElementById('startDate').max = today.toISOString().split('T')[0];
+            document.getElementById('endDate').max = today.toISOString().split('T')[0];
+            
+            // Set default start date to one month ago if not set
+            if (!document.getElementById('startDate').value) {
+                document.getElementById('startDate').value = oneMonthAgo.toISOString().split('T')[0];
+            }
+            
+            // Set default end date to today if not set
+            if (!document.getElementById('endDate').value) {
+                document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            initializeDatePickers();
+            
+            // Close modals when clicking outside
+            document.getElementById('exportModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+                if (e.ctrlKey && e.key === 'p') {
+                    e.preventDefault();
+                    printReport();
+                }
+                if (e.ctrlKey && e.key === 'e') {
+                    e.preventDefault();
+                    showExportModal();
+                }
+            });
+            
+            // Set end date minimum based on start date
+            document.getElementById('startDate').addEventListener('change', function() {
+                document.getElementById('endDate').min = this.value;
+                if (document.getElementById('endDate').value < this.value) {
+                    document.getElementById('endDate').value = this.value;
+                }
+            });
+            
+            // Set start date maximum based on end date
+            document.getElementById('endDate').addEventListener('change', function() {
+                document.getElementById('startDate').max = this.value;
+                if (document.getElementById('startDate').value > this.value) {
+                    document.getElementById('startDate').value = this.value;
+                }
+            });
+            
+            // Auto-submit on employee select if employee is selected
+            document.getElementById('employeeFilter').addEventListener('change', function() {
+                if (this.value) {
+                    setTimeout(applyFilters, 500);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
