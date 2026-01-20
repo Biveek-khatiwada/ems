@@ -746,46 +746,58 @@ def attendance_dashboard(request):
     manager = request.user.custom_user_profile
     department = manager.department
     
+    date_str = request.GET.get('date')
+    if date_str:
+        try:
+            selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except:
+            selected_date = timezone.now().date()
+    else:
+        selected_date = timezone.now().date()
     
-    today = timezone.now().date()
-    
-
-    start_of_week = today - timedelta(days=today.weekday())
-    week_dates = [start_of_week + timedelta(days=i) for i in range(7)]
-    
-    
+    # Get department employees
     employees = CustomUser.objects.filter(department=department, is_active=True)
     
-
+    # Get attendance for selected date
     today_attendance = Attendance.objects.filter(
-        date=today,
+        date=selected_date,
         employee__department=department
     ).select_related('employee')
     
-    week_attendance = Attendance.objects.filter(
-        date__gte=start_of_week,
-        date__lte=today,
-        employee__department=department
-    )
     
+    attendance_dict = {att.employee_id: att for att in today_attendance}
     
+    # Calculate statistics
     present_today = today_attendance.filter(status='present').count()
     absent_today = employees.count() - present_today
-    late_today = today_attendance.filter(
-        check_in__gt=department.attendance_settings.late_threshold
-    ).count()
+    late_today = today_attendance.filter(status='late').count()
+    
+    # Get pending leave requests
+    pending_leave_requests = LeaveRequest.objects.filter(
+        employee__department=department,
+        status='pending'
+    ).select_related('employee')[:5]
+    
+
+    if employees.count() > 0:
+        present_percentage = round((present_today / employees.count()) * 100, 1)
+        absent_percentage = round((absent_today / employees.count()) * 100, 1)
+    else:
+        present_percentage = 0
+        absent_percentage = 0
     
     context = {
-        'today': today,
+        'today': selected_date,
         'employees': employees,
         'today_attendance': today_attendance,
-        'week_dates': week_dates,
-        'week_attendance': week_attendance,
+        'today_attendance_dict': attendance_dict,  # Add this
         'present_today': present_today,
         'absent_today': absent_today,
         'late_today': late_today,
         'department': department,
-        'attendance_settings': department.attendance_settings if hasattr(department, 'attendance_settings') else None,
+        'pending_leave_requests': pending_leave_requests,
+        'present_percentage': present_percentage,
+        'absent_percentage': absent_percentage,
     }
     
     return render(request, 'emp/attendance_dashboard.html', context)
