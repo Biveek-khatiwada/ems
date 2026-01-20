@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from datetime import date, timedelta
 import datetime
-from emp.models import CustomUser, Department,Attendance, Attendancesettings,LeaveRequest
+from emp.models import CustomUser, Department, Attendance, AttendanceSettings ,LeaveRequest
 from emp.forms import CustomUserCreationForm
 from django.http import JsonResponse
 from django.contrib import messages
@@ -988,3 +988,57 @@ def manage_leave_requests(request):
     }
     
     return render(request, 'emp/manage_leaves.html', context)
+
+
+from emp.models import CustomUser, Department, Attendance, AttendanceSettings ,LeaveRequest
+
+@login_required
+def attendance_settings(request):
+    """Configure attendance settings for department"""
+    if not request.user.custom_user_profile.is_manager:
+        messages.error(request, "Only managers can configure settings")
+        return redirect('emp:home_page')
+    
+    manager = request.user.custom_user_profile
+    department = manager.department
+    
+    # Get or create settings
+    settings, created =  AttendanceSettings.objects.get_or_create(
+        department=department,
+        defaults={'created_by': request.user}
+    )
+    
+    if request.method == 'POST':
+        settings.working_hours = request.POST.get('working_hours')
+        settings.late_threshold = request.POST.get('late_threshold')
+        settings.half_day_threshold = request.POST.get('half_day_threshold')
+        settings.check_in_start = request.POST.get('check_in_start')
+        settings.check_in_end = request.POST.get('check_in_end')
+        settings.check_out_start = request.POST.get('check_out_start')
+        settings.check_out_end = request.POST.get('check_out_end')
+        settings.weekdays = ','.join(request.POST.getlist('weekdays'))
+        
+        # Handle holidays
+        holidays = request.POST.get('holidays', '')
+        if holidays:
+            settings.holidays = [h.strip() for h in holidays.split(',')]
+        
+        settings.save()
+        messages.success(request, "Attendance settings updated successfully")
+        return redirect('emp:attendance_settings')
+    
+    context = {
+        'settings': settings,
+        'department': department,
+        'weekday_choices': [
+            (1, 'Monday'),
+            (2, 'Tuesday'),
+            (3, 'Wednesday'),
+            (4, 'Thursday'),
+            (5, 'Friday'),
+            (6, 'Saturday'),
+            (7, 'Sunday'),
+        ]
+    }
+    
+    return render(request, 'emp/attendance_settings.html', context)
