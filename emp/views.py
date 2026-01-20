@@ -16,6 +16,7 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.contrib.auth import authenticate, login, logout
+import json
 
 @login_required
 def home_page(request):
@@ -788,3 +789,49 @@ def attendance_dashboard(request):
     }
     
     return render(request, 'emp/attendance_dashboard.html', context)
+
+@login_required
+def mark_attendance(request):
+    """Mark attendance for employees"""
+    if not request.user.custom_user_profile.is_manager:
+        return JsonResponse({'success': False, 'error': 'Permission denied'})
+    
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        employee_id = data.get('employee_id')
+        date_str = data.get('date')
+        status = data.get('status')
+        check_in = data.get('check_in')
+        check_out = data.get('check_out')
+        notes = data.get('notes', '')
+        
+        try:
+            employee = CustomUser.objects.get(id=employee_id)
+            attendance_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+            
+            if employee.department != request.user.custom_user_profile.department:
+                return JsonResponse({'success': False, 'error': 'Cannot mark attendance for employees in other departments'})
+            
+            attendance, created = Attendance.objects.update_or_create(
+                employee=employee,
+                date=attendance_date,
+                defaults={
+                    'status': status,
+                    'check_in': check_in,
+                    'check_out': check_out,
+                    'notes': notes,
+                    'marked_by': request.user
+                }
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Attendance marked successfully',
+                'attendance_id': attendance.id,
+                'created': created
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
