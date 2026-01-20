@@ -835,3 +835,43 @@ def mark_attendance(request):
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+def bulk_mark_attendance(request):
+    """Bulk mark attendance for multiple employees"""
+    if not request.user.custom_user_profile.is_manager:
+        messages.error(request, "Permission denied")
+        return redirect('emp:attendance_dashboard')
+    
+    if request.method == 'POST':
+        date_str = request.POST.get('date')
+        status = request.POST.get('status')
+        employee_ids = request.POST.getlist('employees')
+        
+        try:
+            attendance_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+            marked_count = 0
+            
+            for emp_id in employee_ids:
+                employee = CustomUser.objects.get(id=emp_id)
+                
+                if employee.department != request.user.custom_user_profile.department:
+                    continue
+                
+                Attendance.objects.update_or_create(
+                    employee=employee,
+                    date=attendance_date,
+                    defaults={
+                        'status': status,
+                        'marked_by': request.user
+                    }
+                )
+                marked_count += 1
+            
+            messages.success(request, f'Attendance marked for {marked_count} employees')
+            
+        except Exception as e:
+            messages.error(request, f'Error: {str(e)}')
+    
+    return redirect('emp:attendance_dashboard')
