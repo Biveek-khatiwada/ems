@@ -1042,3 +1042,150 @@ def attendance_settings(request):
     }
     
     return render(request, 'emp/attendance_settings.html', context)
+
+#Apis
+
+@login_required
+def get_employee_attendance(request, employee_id):
+    """API endpoint to get employee attendance data"""
+    if not request.user.custom_user_profile.is_manager:
+        return JsonResponse({'success': False, 'error': 'Permission denied'})
+    
+    try:
+        employee = CustomUser.objects.get(id=employee_id)
+        
+        if employee.department != request.user.custom_user_profile.department:
+            return JsonResponse({'success': False, 'error': 'Cannot access employee from other department'})
+        
+        date_str = request.GET.get('date', timezone.now().date().isoformat())
+        date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        attendance = Attendance.objects.filter(
+            employee=employee,
+            date=date
+        ).first()
+        
+        if attendance:
+            data = {
+                'success': True,
+                'attendance': {
+                    'id': attendance.id,
+                    'status': attendance.status,
+                    'status_display': attendance.get_status_display(),
+                    'check_in': attendance.check_in.isoformat() if attendance.check_in else None,
+                    'check_out': attendance.check_out.isoformat() if attendance.check_out else None,
+                    'total_hours': float(attendance.total_hours) if attendance.total_hours else 0,
+                    'notes': attendance.notes,
+                }
+            }
+        else:
+            data = {
+                'success': True,
+                'attendance': None
+            }
+        
+        return JsonResponse(data)
+        
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Employee not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def monthly_attendance_summary(request):
+    """API endpoint to get monthly attendance summary"""
+    if not request.user.custom_user_profile.is_manager:
+        return JsonResponse({'success': False, 'error': 'Permission denied'})
+    
+    try:
+        manager = request.user.custom_user_profile
+        department = manager.department
+        
+        month = request.GET.get('month', timezone.now().month)
+        year = request.GET.get('year', timezone.now().year)
+        
+        # Get attendance for the month
+        attendances = Attendance.objects.filter(
+            employee__department=department,
+            date__year=year,
+            date__month=month
+        )
+        
+        # Calculate summary
+        employees = CustomUser.objects.filter(department=department, is_active=True)
+        total_days = attendances.count()
+        
+        summary = {
+            'total_employees': employees.count(),
+            'total_days': total_days,
+            'present': attendances.filter(status='present').count(),
+            'absent': attendances.filter(status='absent').count(),
+            'late': attendances.filter(status='late').count(),
+            'leave': attendances.filter(status='leave').count(),
+            'half_day': attendances.filter(status='half_day').count(),
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'summary': summary,
+            'month': month,
+            'year': year
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def get_daily_attendance(request):
+    """Get attendance for a specific date"""
+    if not request.user.custom_user_profile.is_manager:
+        return JsonResponse({'success': False, 'error': 'Permission denied'})
+    
+    try:
+        date_str = request.GET.get('date', timezone.now().date().isoformat())
+        date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        manager = request.user.custom_user_profile
+        department = manager.department
+        
+        
+        employees = CustomUser.objects.filter(department=department, is_active=True)
+        
+        # Get attendance for the date
+        attendance_data = Attendance.objects.filter(
+            employee__department=department,
+            date=date
+        ).select_related('employee')
+        
+        
+        attendance_dict = {att.employee_id: att for att in attendance_data}
+        
+        # Prepare response data
+        data = []
+        for employee in employees:
+            attendance = attendance_dict.get(employee.id)
+            data.append({
+                'employee_id': employee.id,
+                'employee_name': employee.user.get_full_name() or employee.user.username,
+                'username': employee.user.username,
+                'status': attendance.status if attendance else 'absent',
+                'status_display': attendance.get_status_display() if attendance else 'Absent',
+                'check_in': attendance.check_in.isoformat() if attendance and attendance.check_in else None,
+                'check_out': attendance.check_out.isoformat() if attendance and attendance.check_out else None,
+                'total_hours': float(attendance.total_hours) if attendance and attendance.total_hours else 0,
+                'notes': attendance.notes if attendance else '',
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'date': date_str,
+            'data': data,
+            'total_employees': employees.count(),
+            'present_count': len([d for d in data if d['status'] == 'present']),
+            'absent_count': len([d for d in data if d['status'] == 'absent']),
+            'late_count': len([d for d in data if d['status'] == 'late']),
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
