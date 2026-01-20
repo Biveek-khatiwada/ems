@@ -230,4 +230,39 @@ class Attendance(models.Model):
         
         super().save(*args, **kwargs)
 
+
+class LeaveRequest(models.Model):
+    LEAVE_TYPES = (
+        ('sick', 'Sick Leave'),
+        ('casual', 'Casual Leave'),
+        ('earned', 'Earned Leave'),
+        ('maternity', 'Maternity Leave'),
+        ('paternity', 'Paternity Leave'),
+        ('unpaid', 'Unpaid Leave'),
+    )
+    
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+    
+    employee = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='leave_requests')
+    leave_type = models.CharField(max_length=20, choices=LEAVE_TYPES)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    total_days = models.IntegerField(default=1)
+    reason = models.TextField()
+    supporting_docs = models.FileField(upload_to='leave_docs/', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    response_notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def save(self, *args, **kwargs):
+        if self.start_date and self.end_date:
+            self.total_days = (self.end_date - self.start_date).days + 1
+        super().save(*args, **kwargs)
+
     
