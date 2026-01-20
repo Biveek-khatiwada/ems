@@ -3,6 +3,8 @@ import uuid
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone 
+import datetime
 
 class Department(models.Model):
     name = models.CharField(
@@ -187,3 +189,45 @@ class CustomUser(models.Model):
                 employee !='admin'
             )
         return self.id == employee.id
+    
+    
+
+class Attendance(models.Model):
+    ATTENDANCE_STATUS = (
+        ('present', 'Present'),
+        ('absent', 'Absent'),
+        ('half_day', 'Half Day'),
+        ('leave', 'On Leave'),
+        ('holiday', 'Holiday'),
+        ('weekend', 'Weekend'),
+    )
+    
+    employee = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='attendances')
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='attendances', null=True, blank=True)
+    date = models.DateField(default=timezone.now)
+    check_in = models.TimeField(null=True, blank=True)
+    check_out = models.TimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=ATTENDANCE_STATUS, default='absent')
+    total_hours = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    notes = models.TextField(blank=True)
+    marked_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='marked_attendances')
+    marked_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['employee', 'date']
+        ordering = ['-date']
+    
+    def save(self, *args, **kwargs):
+
+        if self.employee and self.employee.department:
+            self.department = self.employee.department
+        
+        if self.check_in and self.check_out:
+            check_in_dt = datetime.combine(self.date, self.check_in)
+            check_out_dt = datetime.combine(self.date, self.check_out)
+            diff = check_out_dt - check_in_dt
+            self.total_hours = round(diff.total_seconds() / 3600, 2)
+        
+        super().save(*args, **kwargs)
+
+    
