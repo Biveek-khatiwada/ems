@@ -880,6 +880,11 @@ def bulk_mark_attendance(request):
     
     return redirect('emp:attendance_dashboard')
 
+from django.db.models import Count, Sum, Avg, Q
+from datetime import date, datetime, timedelta
+import calendar
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 @login_required
 def attendance_report(request, employee_id=None):
     """Generate attendance reports"""
@@ -890,49 +895,141 @@ def attendance_report(request, employee_id=None):
     manager = request.user.custom_user_profile
     department = manager.department
     
-    month = request.GET.get('month', timezone.now().month)
-    year = request.GET.get('year', timezone.now().year)
-    employee_filter = request.GET.get('employee', 'all')
-
-    if employee_id:
-        employee = get_object_or_404(CustomUser, id=employee_id, department=department)
-        attendances = Attendance.objects.filter(
-            employee=employee,
-            date__year=year,
-            date__month=month
-        ).order_by('date')
-        selected_employee = employee
+    # Get filter parameters with defaults
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    selected_department_id = request.GET.get('department')
+    selected_employee_id = request.GET.get('employee')
+    selected_status = request.GET.get('status')
+    
+    # Set default date range (last 30 days)
+    if not start_date_str:
+        start_date = timezone.now().date() - timedelta(days=30)
     else:
-        attendances = Attendance.objects.filter(
-            employee__department=department,
-            date__year=year,
-            date__month=month
-        ).select_related('employee').order_by('date')
-        selected_employee = None
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except:
+            start_date = timezone.now().date() - timedelta(days=30)
     
+    if not end_date_str:
+        end_date = timezone.now().date()
+    else:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except:
+            end_date = timezone.now().date()
     
-    summary = {
-        'total_days': attendances.count(),
-        'present': attendances.filter(status='present').count(),
-        'absent': attendances.filter(status='absent').count(),
-        'leave': attendances.filter(status='leave').count(),
-        'half_day': attendances.filter(status='half_day').count(),
-    }
+    # Ensure end_date is not before start_date
+    if end_date < start_date:
+        end_date = start_date + timedelta(days=30)
     
+    # Get departments (manager can only see their own department)
+    departments = Department.objects.filter(id=department.id)
     
-    employees = CustomUser.objects.filter(department=department, is_active=True)
+    # Base queryset for attendances
+    attendances_qs = Attendance.objects.filter(
+        employee__department=department,
+        date__gte=start_date,
+        date__lte=end_date
+    ).select_related('employee', 'employee__department', 'employee__user')
     
+    # Apply department filter
+    if selected_department_id:
+        try:
+            selected_department = Department.objects.get(id=selected_department_id)
+            attendances_qs = attendances_qs.filter(employee__department=selected_department)
+        except Department.DoesNotExist:
+            selected_department = None
+    else:
+        selected_department = None
+    
+    # Apply employee filter
+    if selected_employee_id:
+        try:
+            selected_employee_obj = CustomUser.objects.get(id=selected_employee_id)
+            attendances_qs = attendances_qs.filter(employee=selected_employee_obj)
+        except CustomUser.DoesNotExist:
+            selected_employee_obj = None
+    else:
+        selected_employee_obj = None
+    
+    # Apply status filter
+    if selected_status:
+        attendances_qs = attendances_qs.filter(status=selected_status)
+    
+    # Order by date (newest first)
+    attendances_qs = attendances_qs.order_by('-date')
+    
+    # Get all employees in department for dropdown
+    all_employees = CustomUser.objects.filter(department=department, is_active=True)
+    
+    # Calculate statistics
+    total_employees = CustomUser.objects.filter(department=department).count()
+    active_employees = CustomUser.objects.filter(department=department, is_active=True).count()
+    inactive_employees = total_employees - active_employees
+    
+    # Get attendance counts
+    present_count = attendances_qs.filter(status='present').count()
+    absent_count = attendances_qs.filter(status='absent').count()
+    leave_count = attendances_qs.filter(status='leave').count()
+    half_day_count = attendances_qs.filter(status='half_day').count()
+    holiday_count = attendances_qs.filter(status='holiday').count()
+    weekend_count = attendances_qs.filter(status='weekend').count()
+    
+    # For "late" count, check if you have a 'late' status or calculate based on check-in time
+    # Since your model doesn't have 'late' status, you might need to calculate it differently
+    late_count = 0  # You'll need to implement this based on your business logic
+    
+    # Calculate percentages
+    total_days_in_range = (end_date - start_date).days + 1
+    total_employee_days = total_days_in_range * active_employees if active_employees > 0 else 1
+    
+    present_percentage = round((present_count / total_employee_days) * 100, 2) if total_employee_days > 0 else 0
+    absent_percentage = round((absent_count / total_employee_days) * 100, 2) if total_employee_days > 0 else 0
+    late_percentage = round((late_count / total_employee_days) * 100, 2) if total_employee_days > 0 else 0
+    
+    # Prepare pagination
+    paginator = Paginator(attendances_qs, 50)
+    page_number = request.GET.get('page')
+    
+    try:
+        page_obj = paginator.page(page_number)
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+    
+    # Prepare context
     context = {
-        'attendances': attendances,
-        'summary': summary,
-        'month': month,
-        'year': year,
-        'employees': employees,
-        'selected_employee': selected_employee,
-        'employee_filter': employee_filter,
+        'attendances': page_obj,
+        'page_obj': page_obj,
+        'summary': {
+            'total_employees': total_employees,
+            'active_employees': active_employees,
+            'inactive_employees': inactive_employees,
+            'present_count': present_count,
+            'absent_count': absent_count,
+            'late_count': late_count,
+            'leave_count': leave_count,
+            'half_day_count': half_day_count,
+            'holiday_count': holiday_count,
+            'weekend_count': weekend_count,
+            'present_percentage': present_percentage,
+            'absent_percentage': absent_percentage,
+            'late_percentage': late_percentage,
+        },
+        'departments': departments,
+        'all_employees': all_employees,
+        'selected_department': selected_department_id,
+        'selected_employee': selected_employee_id,
+        'selected_employee_obj': selected_employee_obj,
+        'selected_status': selected_status,
+        'start_date': start_date,
+        'end_date': end_date,
+        'current_time': timezone.now(),
     }
     
-    return render(request, 'emp/attendance_report.html', context)
+    return render(request, 'emp/attendence_report.html', context)
 
 
 @login_required
