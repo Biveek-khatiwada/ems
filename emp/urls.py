@@ -20,6 +20,18 @@ urlpatterns = [
     path('logout/',views.user_logout, name='logout'),
     path('complete-profile/',views.complete_profile, name='complete_profile'),
     path('my-profile/',views.my_profile, name='my_profile'),
+    
+    path('attendance/', views.attendance_dashboard, name='attendance_dashboard'),
+    path('attendance/mark/', views.mark_attendance, name='mark_attendance'),
+    path('attendance/bulk-mark/', views.bulk_mark_attendance, name='bulk_mark_attendance'),
+    path('attendance/report/', views.attendance_report, name='attendance_report'),
+    path('attendance/report/<int:employee_id>/', views.attendance_report, name='employee_attendance_report'),
+    path('attendance/leaves/', views.manage_leave_requests, name='manage_leaves'),
+    path('attendance/settings/', views.attendance_settings, name='attendance_settings'),
+    
+    # API endpoints for AJAX calls
+    path('api/attendance/employee/<int:employee_id>/', views.get_employee_attendance, name='api_employee_attendance'),
+    path('api/attendance/monthly-summary/', views.monthly_attendance_summary, name='api_monthly_summary'),
 ]
 
 
