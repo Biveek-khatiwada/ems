@@ -266,3 +266,19 @@ class LeaveRequest(models.Model):
         super().save(*args, **kwargs)
 
     
+class Attendancesettings(models.Model):
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, unique=True)
+    working_hours = models.DecimalField(max_digits=5, decimal_places=2, default=8.0)
+    late_threshold = models.TimeField(default='10:00:00')
+    half_day_threshold = models.TimeField(default='13:00:00')
+    check_in_start = models.TimeField(default='09:00:00')
+    check_in_end = models.TimeField(default='10:00:00')
+    check_out_start = models.TimeField(default='17:00:00')
+    check_out_end = models.TimeField(default='18:00:00')
+    weekdays = models.CharField(max_length=20, default='1,2,3,4,5')  
+    holidays = models.JSONField(default=list, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    
+    def __str__(self):
+        return f"Attendance Settings - {self.department.name}"
+    
