@@ -266,7 +266,7 @@ class LeaveRequest(models.Model):
         super().save(*args, **kwargs)
 
     
-class Attendancesettings(models.Model):
+class AttendanceSettings(models.Model):
     department = models.ForeignKey(Department, on_delete=models.CASCADE, unique=True)
     working_hours = models.DecimalField(max_digits=5, decimal_places=2, default=8.0)
     late_threshold = models.TimeField(default='10:00:00')
