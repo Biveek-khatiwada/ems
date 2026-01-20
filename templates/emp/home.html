@@ -959,6 +959,7 @@
                   {% if is_manager and not user_department %}disabled title="You need to be assigned to a department to add employees"{% endif %}>
             <i class="fas fa-user-plus"></i> Add Employee
           </button>
+          
           {% endif %}
           
           <!-- Manage Departments button - only for super admin -->
@@ -977,7 +978,7 @@
 
            <!-- Login/Logout buttons -->
           {% if request.user.is_authenticated %}
-              <!-- Logout button for logged-in users -->
+             
             <a href="{% url 'emp:logout' %}" class="btn btn-outline" style="text-decoration: none;">
             <i class="fas fa-sign-out-alt me-1"></i> Logout
              </a>
