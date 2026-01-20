@@ -930,7 +930,6 @@
     </style>
 </head>
 <body>
-    
     <div class="attendance-container">
         <!-- Dashboard Header -->
         <div class="dashboard-header">
@@ -963,7 +962,7 @@
                 </button>
             </div>
         </div>
-
+       
         <!-- Stats and Charts Grid -->
         <div class="stats-charts-grid">
             <!-- Stats Cards -->
@@ -1093,10 +1092,12 @@
                     <button class="action-btn action-btn-secondary" onclick="showBulkMarkModal()">
                         <i class="fas fa-users"></i> Bulk Mark
                     </button>
-                    {% if is_superadmin or is_manager %}
-                    <a href="{% url 'emp:attendance_report' %}" class="action-btn action-btn-secondary">
+                    {% if is_manager %}
+                    <a href="{% url 'emp:attendance_report' %}" class="action-btn action-btn-primary">
                         <i class="fas fa-chart-bar"></i> View Reports
                     </a>
+                    {% endif %}
+                    {% if is_superadmin or is_manager %}
                     <a href="{% url 'emp:manage_leaves' %}" class="action-btn action-btn-primary">
                         <i class="fas fa-clipboard-list"></i> Manage Leaves
                     </a>
