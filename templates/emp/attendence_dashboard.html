@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Dashboard | Employee Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --attendance-present: #06d6a0;
+            --attendance-absent: #ef476f;
+            --attendance-late: #ffd166;
+            --attendance-leave: #4cc9f0;
+            --attendance-halfday: #7209b7;
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border: #dee2e6;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fb 0%, #eef2ff 100%);
+            min-height: 100vh;
+        }
+
+        .attendance-container {
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Dashboard Header */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, transparent 30%, rgba(67, 97, 238, 0.05) 100%);
+            border-radius: 50%;
+            transform: translate(100px, -100px);
+        }
+
+        .header-left h1 {
+            font-size: 2rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 8px;
+            font-weight: 800;
+        }
+
+        .header-left h1 i {
+            color: white;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .dept-info {
+            color: var(--gray);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .dept-badge {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 3px 10px rgba(67, 97, 238, 0.2);
+        }
+
+        .date-navigation {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: var(--light);
+            padding: 12px 25px;
+            border-radius: 50px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .date-navigation button {
+            background: white;
+            border: 2px solid var(--border);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        .date-navigation button:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .current-date {
+            font-weight: 700;
+            color: var(--dark);
+            min-width: 180px;
+            text-align: center;
+            font-size: 1.1rem;
+            background: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 2px solid var(--border);
+        }
+
+        /* Stats and Charts Grid */
+        .stats-charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 2.8rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--dark), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--gray);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stat-trend {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: var(--light);
+            width: fit-content;
+        }
+
+        .trend-up { color: var(--attendance-present); }
+        .trend-down { color: var(--attendance-absent); }
+
+        /* Charts Container */
+        .charts-container {
+            background: white;
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .chart-header h3 {
+            font-size: 1.2rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-refresh {
+            background: var(--light);
+            border: 1px solid var(--border);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-refresh:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: rotate(180deg);
+        }
+
+        .chart-wrapper {
+            height: 220px;
+            position: relative;
+        }
+
+        /* Live Activity */
+        .live-activity {
+            background: white;
+            border-radius: var(--radius);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .activity-header h3 {
+            font-size: 1.3rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--attendance-present);
+            font-weight: 600;
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--attendance-present);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: var(--light);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            transform: translateX(5px);
+            background: white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .activity-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-content strong {
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .activity-time {
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+
+        /* Attendance Table */
+        .attendance-table-container {
+            background: white;
+            border-radius: var(--radius);
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .table-header h2 {
+            font-size: 1.5rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .attendance-filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 12px 18px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: white;
+            color: var(--dark);
+            font-size: 0.95rem;
+            min-width: 160px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .attendance-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 12px 22px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .action-btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .action-btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        .action-btn-secondary {
+            background: white;
+            color: var(--dark);
+            border: 2px solid var(--border);
+        }
+
+        .action-btn-secondary:hover {
+            background: var(--light);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .attendance-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95rem;
+        }
+
+        .attendance-table thead {
+            background: linear-gradient(135deg, var(--light), #e9ecef);
+        }
+
+        .attendance-table th {
+            padding: 18px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .attendance-table td {
+            padding: 18px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .attendance-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .attendance-table tbody tr:hover {
+            background: linear-gradient(90deg, rgba(67, 97, 238, 0.05), transparent);
+            transform: scale(1.002);
+        }
+
+        .employee-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .employee-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            box-shadow: 0 3px 8px rgba(67, 97, 238, 0.2);
+        }
+
+        .attendance-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .status-present {
+            background: linear-gradient(135deg, rgba(6, 214, 160, 0.15), rgba(6, 214, 160, 0.05));
+            color: var(--attendance-present);
+            border: 1px solid rgba(6, 214, 160, 0.3);
+        }
+
+        .status-absent {
+            background: linear-gradient(135deg, rgba(239, 71, 111, 0.15), rgba(239, 71, 111, 0.05));
+            color: var(--attendance-absent);
+            border: 1px solid rgba(239, 71, 111, 0.3);
+        }
+
+        .status-late {
+            background: linear-gradient(135deg, rgba(255, 209, 102, 0.15), rgba(255, 209, 102, 0.05));
+            color: var(--attendance-late);
+            border: 1px solid rgba(255, 209, 102, 0.3);
+        }
+
+        .status-leave {
+            background: linear-gradient(135deg, rgba(76, 201, 240, 0.15), rgba(76, 201, 240, 0.05));
+            color: var(--attendance-leave);
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+
+        .status-half_day {
+            background: linear-gradient(135deg, rgba(114, 9, 183, 0.15), rgba(114, 9, 183, 0.05));
+            color: var(--attendance-halfday);
+            border: 1px solid rgba(114, 9, 183, 0.3);
+        }
+
+        .attendance-actions-cell {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .action-icon-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+        }
+
+        .time-input {
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            width: 110px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .quick-action-btn {
+            padding: 8px 14px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-present:hover { 
+            background: var(--attendance-present); 
+            color: white; 
+            border-color: var(--attendance-present); 
+        }
+        .btn-absent:hover { 
+            background: var(--attendance-absent); 
+            color: white; 
+            border-color: var(--attendance-absent); 
+        }
+        .btn-late:hover { 
+            background: var(--attendance-late); 
+            color: white; 
+            border-color: var(--attendance-late); 
+        }
+        .btn-leave:hover { 
+            background: var(--attendance-leave); 
+            color: white; 
+            border-color: var(--attendance-leave); 
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 25px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, var(--light), white);
+        }
+
+        .modal-header h3 {
+            font-size: 1.4rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--gray);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .close-modal:hover {
+            color: var(--attendance-absent);
+            background: rgba(239, 71, 111, 0.1);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: var(--light);
+            border-radius: 0 0 var(--radius) var(--radius);
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 20px 25px;
+            background: white;
+            color: var(--dark);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            min-width: 350px;
+            z-index: 10000;
+            animation: slideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border-left: 5px solid var(--attendance-present);
+        }
+
+        .notification-error {
+            border-left-color: var(--attendance-absent);
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .notification-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+        }
+
+        .notification-success .notification-icon {
+            background: linear-gradient(135deg, var(--attendance-present), #05c190);
+        }
+
+        .notification-error .notification-icon {
+            background: linear-gradient(135deg, var(--attendance-absent), #e6355e);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%) rotate(10deg);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        /* Auto-refresh indicator */
+        .auto-refresh {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 999;
+            border: 2px solid var(--primary);
+        }
+
+        .refresh-indicator {
+            width: 8px;
+            height: 8px;
+            background: var(--attendance-present);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-container {
+                height: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .attendance-filters {
+                width: 100%;
+            }
+            
+            .filter-select {
+                flex: 1;
+                min-width: auto;
+            }
+            
+            .attendance-actions {
+                width: 100%;
+            }
+            
+            .action-btn {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .attendance-container {
+                padding: 15px;
+            }
+            
+            .stat-card {
+                padding: 20px;
+            }
+            
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+            
+            .stat-value {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="attendance-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="header-left">
+                <h1><i class="fas fa-calendar-check"></i> Attendance Dashboard</h1>
+                <div class="dept-info">
+                    <span><i class="fas fa-building"></i> {{ department.name }} Department</span>
+                    <span class="dept-badge">
+                        <i class="fas fa-users"></i> {{ employees.count }} Employees
+                    </span>
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-clock"></i>
+                        <span id="currentTime">{{ today }}</span>
+                    </span>
+                </div>
+            </div>
+            
+            <div class="date-navigation">
+                <button onclick="changeDate(-1)" title="Previous Day">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="current-date" id="currentDate">
+                   {{ today}}
+                </div>
+                <button onclick="changeDate(1)" title="Next Day">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <button onclick="goToToday()" style="margin-left: 10px;" title="Go to Today">
+                    <i class="fas fa-calendar-day"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats and Charts Grid -->
+        <div class="stats-charts-grid">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--attendance-present), #05c190);">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="presentCount">{{ present_today }}</div>
+                        <div class="stat-label">Present Today</div>
+                        <div class="stat-trend trend-up" id="presentTrend">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>{{ present_percentage|floatformat:0 }}% of total</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--attendance-absent), #e6355e);">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="absentCount">{{ absent_today }}</div>
+                        <div class="stat-label">Absent Today</div>
+                        <div class="stat-trend trend-down" id="absentTrend">
+                            <i class="fas fa-arrow-down"></i>
+                            <span>{{ absent_percentage|floatformat:0 }}% of total</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--attendance-late), #e6b400);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="lateCount">{{ late_today }}</div>
+                        <div class="stat-label">Late Arrivals</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span id="lateStatus">Needs attention</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--attendance-leave), #3ab7e0);">
+                        <i class="fas fa-umbrella-beach"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="leaveCount">{{ leave_requests_pending|default:"0" }}</div>
+                        <div class="stat-label">Pending Leaves</div>
+                        <div class="stat-trend">
+                            <i class="fas fa-bell"></i>
+                            <span>Needs review</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Container -->
+            <div class="charts-container">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-pie"></i> Attendance Distribution</h3>
+                    <button class="chart-refresh" onclick="refreshChart()" title="Refresh Chart">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+                
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> Weekly Trend</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Activity Section -->
+        <div class="live-activity">
+            <div class="activity-header">
+                <h3><i class="fas fa-bolt"></i> Live Activity</h3>
+                <div class="live-indicator">
+                    <div class="live-dot"></div>
+                    <span>LIVE UPDATES</span>
+                </div>
+            </div>
+            <div class="activity-list" id="activityList">
+                <!-- Activities will be populated by JavaScript -->
+                <div class="activity-item">
+                    <div class="activity-icon" style="background: linear-gradient(135deg, var(--attendance-present), #05c190);">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="activity-content">
+                        <strong>System</strong> started monitoring attendance
+                        <div class="activity-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Attendance Table -->
+        <div class="attendance-table-container">
+            <div class="table-header">
+                <h2><i class="fas fa-users"></i> Today's Attendance</h2>
+                <div class="attendance-filters">
+                    <select class="filter-select" id="statusFilter" onchange="filterAttendance()">
+                        <option value="all">All Status</option>
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                        <option value="late">Late</option>
+                        <option value="leave">On Leave</option>
+                        <option value="half_day">Half Day</option>
+                    </select>
+                    <select class="filter-select" id="employeeFilter" onchange="filterAttendance()">
+                        <option value="all">All Employees</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee.id }}">{{ employee.user.get_full_name|default:employee.user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="attendance-actions">
+                    <button class="action-btn action-btn-secondary" onclick="showBulkMarkModal()">
+                        <i class="fas fa-users"></i> Bulk Mark
+                    </button>
+                    {% if is_superadmin or is_manager %}
+                    <a href="{% url 'emp:attendance_report' %}" class="action-btn action-btn-secondary">
+                        <i class="fas fa-chart-bar"></i> View Reports
+                    </a>
+                    <a href="{% url 'emp:manage_leaves' %}" class="action-btn action-btn-primary">
+                        <i class="fas fa-clipboard-list"></i> Manage Leaves
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Status</th>
+                            <th>Check In</th>
+                            <th>Check Out</th>
+                            <th>Total Hours</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        {% for emp in employees %}
+                        <tr data-employee-id="{{ emp.id }}" data-status="{% for att in today_attendance %}{% if att.employee.id == emp.id %}{{ att.status }}{% endif %}{% endfor %}{% if not att or att.employee.id != emp.id %}absent{% endif %}">
+                            <td>
+                                <div class="employee-info">
+                                    <img src="https://ui-avatars.com/api/?name={{ emp.user.get_full_name|default:emp.user.username|urlencode }}&background=random&size=45"
+                                         alt="{{ emp.user.username }}"
+                                         class="employee-avatar">
+                                    <div>
+                                        <div style="font-weight: 700;">
+                                            {{ emp.user.get_full_name|default:emp.user.username }}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: #6c757d;">
+                                            @{{ emp.user.username }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% for att in today_attendance %}
+                                    {% if att.employee.id == emp.id %}
+                                        <span class="attendance-status status-{{ att.status }}">
+                                            <i class="fas fa-{% if att.status == 'present' %}check-circle{% elif att.status == 'absent' %}times-circle{% elif att.status == 'late' %}clock{% elif att.status == 'leave' %}umbrella-beach{% else %}adjust{% endif %}"></i>
+                                            {{ att.get_status_display }}
+                                        </span>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if not today_attendance %}
+                                    <span class="attendance-status status-absent">
+                                        <i class="fas fa-times-circle"></i> Absent
+                                    </span>
+                                {% else %}
+                                    {% with found=False %}
+                                        {% for att in today_attendance %}
+                                            {% if att.employee.id == emp.id %}
+                                                {% with found=True %}{% endwith %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if not found %}
+                                            <span class="attendance-status status-absent">
+                                                <i class="fas fa-times-circle"></i> Absent
+                                            </span>
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for att in today_attendance %}
+                                    {% if att.employee.id == emp.id and att.check_in %}
+                                        <input type="time" class="time-input check-in-input" 
+                                               value="{{ att.check_in|time:'H:i' }}"
+                                               data-employee-id="{{ emp.id }}"
+                                               onchange="updateTime('{{ emp.id }}', 'check_in', this.value)">
+                                    {% endif %}
+                                {% endfor %}
+                                {% with found=False %}
+                                    {% for att in today_attendance %}
+                                        {% if att.employee.id == emp.id and att.check_in %}
+                                            {% with found=True %}{% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not found %}
+                                        <input type="time" class="time-input check-in-input" 
+                                               data-employee-id="{{ emp.id }}"
+                                               onchange="updateTime('{{ emp.id }}', 'check_in', this.value)">
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% for att in today_attendance %}
+                                    {% if att.employee.id == emp.id and att.check_out %}
+                                        <input type="time" class="time-input check-out-input" 
+                                               value="{{ att.check_out|time:'H:i' }}"
+                                               data-employee-id="{{ emp.id }}"
+                                               onchange="updateTime('{{ emp.id }}', 'check_out', this.value)">
+                                    {% endif %}
+                                {% endfor %}
+                                {% with found=False %}
+                                    {% for att in today_attendance %}
+                                        {% if att.employee.id == emp.id and att.check_out %}
+                                            {% with found=True %}{% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not found %}
+                                        <input type="time" class="time-input check-out-input" 
+                                               data-employee-id="{{ emp.id }}"
+                                               onchange="updateTime('{{ emp.id }}', 'check_out', this.value)">
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% for att in today_attendance %}
+                                    {% if att.employee.id == emp.id and att.total_hours %}
+                                        <span style="font-weight: 700;">{{ att.total_hours }} hrs</span>
+                                    {% endif %}
+                                {% endfor %}
+                                {% with found=False %}
+                                    {% for att in today_attendance %}
+                                        {% if att.employee.id == emp.id and att.total_hours %}
+                                            {% with found=True %}{% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if not found %}
+                                        <span style="color: #6c757d;">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="attendance-actions-cell">
+                                    <div class="quick-actions">
+                                        <button class="quick-action-btn btn-present" onclick="markAttendance('{{ emp.id }}', 'present')" title="Mark Present">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="quick-action-btn btn-absent" onclick="markAttendance('{{ emp.id }}', 'absent')" title="Mark Absent">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <button class="quick-action-btn btn-late" onclick="markAttendance('{{ emp.id }}', 'late')" title="Mark Late">
+                                            <i class="fas fa-clock"></i>
+                                        </button>
+                                        <button class="quick-action-btn btn-leave" onclick="markAttendance('{{ emp.id }}', 'leave')" title="Mark Leave">
+                                            <i class="fas fa-umbrella-beach"></i>
+                                        </button>
+                                    </div>
+                                    <button class="action-icon-btn" onclick="showNotesModal('{{ emp.id }}', '{{ emp.user.get_full_name|default:emp.user.username|escapejs }}')" title="Add Notes">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 50px;">
+                                <div style="color: #6c757d;">
+                                    <i class="fas fa-users-slash fa-3x" style="margin-bottom: 20px; color: var(--primary); opacity: 0.5;"></i>
+                                    <h3 style="margin-bottom: 10px;">No Employees Found</h3>
+                                    <p>There are no employees in your department.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Mark Attendance Modal -->
+    <div id="bulkMarkModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-users"></i> Bulk Mark Attendance</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkMarkForm" method="POST" action="{% url 'emp:bulk_mark_attendance' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="date" value="{{ today|date:'Y-m-d' }}">
+                    
+                    <div style="margin-bottom: 25px;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 700; color: var(--dark); font-size: 1.1rem;">Select Status</label>
+                        <select name="status" style="width: 100%; padding: 14px; border-radius: 10px; border: 2px solid var(--border); font-size: 1rem; font-weight: 500;" required>
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                            <option value="late">Late</option>
+                            <option value="leave">On Leave</option>
+                            <option value="half_day">Half Day</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 25px;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 700; color: var(--dark); font-size: 1.1rem;">Select Employees</label>
+                        <div style="max-height: 300px; overflow-y: auto; border: 2px solid var(--border); border-radius: 10px; padding: 15px; background: var(--light);">
+                            {% for emp in employees %}
+                            <div style="display: flex; align-items: center; padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.05); background: white; border-radius: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" name="employees" value="{{ emp.id }}" id="emp_{{ emp.id }}" style="margin-right: 15px; width: 20px; height: 20px; accent-color: var(--primary);">
+                                <label for="emp_{{ emp.id }}" style="flex: 1; cursor: pointer; margin: 0; font-weight: 500; display: flex; align-items: center; gap: 10px;">
+                                    <img src="https://ui-avatars.com/api/?name={{ emp.user.get_full_name|default:emp.user.username|urlencode }}&background=random&size=30" 
+                                         style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--primary);">
+                                    {{ emp.user.get_full_name|default:emp.user.username }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button type="button" onclick="selectAllEmployees()" class="action-btn action-btn-secondary" style="padding: 10px 20px; flex: 1;">
+                                <i class="fas fa-check-double"></i> Select All
+                            </button>
+                            <button type="button" onclick="deselectAllEmployees()" class="action-btn action-btn-secondary" style="padding: 10px 20px; flex: 1;">
+                                <i class="fas fa-times"></i> Deselect All
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="action-btn action-btn-secondary" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="action-btn action-btn-primary">
+                            <i class="fas fa-save"></i> Mark Attendance
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Notes Modal -->
+    <div id="notesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Add Notes</h3>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="notesForm">
+                    <input type="hidden" id="notesEmployeeId">
+                    
+                    <div style="margin-bottom: 25px;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 700; color: var(--dark); font-size: 1.1rem;">
+                            Notes for <span id="employeeName" style="color: var(--primary);"></span>
+                        </label>
+                        <textarea id="attendanceNotes" rows="6" style="width: 100%; padding: 15px; border: 2px solid var(--border); border-radius: 10px; font-size: 1rem; resize: vertical; font-family: inherit;"></textarea>
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                            <small style="color: var(--gray);">Max 500 characters</small>
+                            <small style="color: var(--gray);" id="charCount">0/500</small>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="action-btn action-btn-secondary" onclick="closeModal()">Cancel</button>
+                        <button type="button" class="action-btn action-btn-primary" onclick="saveNotes()">
+                            <i class="fas fa-save"></i> Save Notes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-refresh Indicator -->
+    <div class="auto-refresh">
+        <div class="refresh-indicator"></div>
+        <span style="font-weight: 600; color: var(--dark);">Auto-refresh in</span>
+        <span style="font-weight: 800; color: var(--primary);" id="refreshTimer">30s</span>
+    </div>
+
+    <script>
+        // Global variables
+        let currentDate = new Date('{{ today|date:"Y-m-d" }}');
+        let selectedEmployeeId = null;
+        let selectedEmployeeName = null;
+        let attendanceChart = null;
+        let weeklyChart = null;
+        let refreshInterval = null;
+        let refreshTimer = 30;
+        let lastAttendanceData = null;
+        let activityLog = [];
+
+        // Initialize Charts
+        function initializeCharts() {
+            const ctx1 = document.getElementById('attendanceChart').getContext('2d');
+            const ctx2 = document.getElementById('weeklyChart').getContext('2d');
+            
+            // Destroy existing charts
+            if (attendanceChart) attendanceChart.destroy();
+            if (weeklyChart) weeklyChart.destroy();
+            
+            // Attendance Distribution Chart
+            const presentCount = parseInt(document.getElementById('presentCount').textContent) || 0;
+            const absentCount = parseInt(document.getElementById('absentCount').textContent) || 0;
+            const lateCount = parseInt(document.getElementById('lateCount').textContent) || 0;
+            const leaveCount = parseInt(document.getElementById('leaveCount').textContent) || 0;
+            const total = presentCount + absentCount + lateCount + leaveCount;
+            
+            attendanceChart = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Present', 'Absent', 'Late', 'On Leave'],
+                    datasets: [{
+                        data: [presentCount, absentCount, lateCount, leaveCount],
+                        backgroundColor: [
+                            'rgba(6, 214, 160, 0.8)',
+                            'rgba(239, 71, 111, 0.8)',
+                            'rgba(255, 209, 102, 0.8)',
+                            'rgba(76, 201, 240, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgb(6, 214, 160)',
+                            'rgb(239, 71, 111)',
+                            'rgb(255, 209, 102)',
+                            'rgb(76, 201, 240)'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                },
+                                color: 'var(--dark)'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${context.label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true,
+                        duration: 1000
+                    }
+                }
+            });
+            
+            // Weekly Trend Chart
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const attendanceData = [85, 78, 92, 88, 76, 65, 70]; // Example data
+            
+            weeklyChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Attendance %',
+                        data: attendanceData,
+                        borderColor: 'rgb(67, 97, 238)',
+                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgb(67, 97, 238)',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Format date as YYYY-MM-DD
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // Update current date display
+        function updateDateDisplay() {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = currentDate.toLocaleDateString('en-US', options);
+        }
+
+        // Update current time
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+            });
+            document.getElementById('currentTime').textContent = timeString;
+        }
+
+        // Change date by days
+        function changeDate(days) {
+            currentDate.setDate(currentDate.getDate() + days);
+            updateDateDisplay();
+            
+            // Reload page with new date parameter
+            const newDate = formatDate(currentDate);
+            window.location.href = `?date=${newDate}`;
+        }
+
+        // Go to today
+        function goToToday() {
+            currentDate = new Date();
+            const todayDate = formatDate(currentDate);
+            window.location.href = `?date=${todayDate}`;
+        }
+
+        // Auto-refresh functionality
+        function startAutoRefresh() {
+            clearInterval(refreshInterval);
+            refreshTimer = 30;
+            
+            refreshInterval = setInterval(() => {
+                refreshTimer--;
+                document.getElementById('refreshTimer').textContent = refreshTimer + 's';
+                
+                if (refreshTimer <= 0) {
+                    refreshAttendanceData();
+                    refreshTimer = 30;
+                }
+            }, 1000);
+        }
+
+        // Refresh attendance data
+        async function refreshAttendanceData() {
+            try {
+                const response = await fetch(`?date=${formatDate(currentDate)}&refresh=true`);
+                if (response.ok) {
+                    // Parse the new HTML and extract stats
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Update stats
+                    const presentCount = doc.querySelector('#presentCount')?.textContent || '0';
+                    const absentCount = doc.querySelector('#absentCount')?.textContent || '0';
+                    const lateCount = doc.querySelector('#lateCount')?.textContent || '0';
+                    
+                    document.getElementById('presentCount').textContent = presentCount;
+                    document.getElementById('absentCount').textContent = absentCount;
+                    document.getElementById('lateCount').textContent = lateCount;
+                    
+                    // Update charts
+                    initializeCharts();
+                    
+                    // Add activity log
+                    addActivity('System refreshed attendance data', 'info');
+                    
+                    showNotification('success', 'Attendance data refreshed successfully');
+                }
+            } catch (error) {
+                console.error('Refresh error:', error);
+            }
+        }
+
+        // Add activity to log
+        function addActivity(message, type = 'info') {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+            
+            let icon = 'info-circle';
+            let bgColor = 'var(--primary)';
+            
+            if (type === 'present') {
+                icon = 'user-check';
+                bgColor = 'var(--attendance-present)';
+            } else if (type === 'absent') {
+                icon = 'user-times';
+                bgColor = 'var(--attendance-absent)';
+            } else if (type === 'late') {
+                icon = 'clock';
+                bgColor = 'var(--attendance-late)';
+            } else if (type === 'leave') {
+                icon = 'umbrella-beach';
+                bgColor = 'var(--attendance-leave)';
+            }
+            
+            activityItem.innerHTML = `
+                <div class="activity-icon" style="background: linear-gradient(135deg, ${bgColor}, ${bgColor}80);">
+                    <i class="fas fa-${icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <strong>${message}</strong>
+                    <div class="activity-time">${timeString}</div>
+                </div>
+            `;
+            
+            const activityList = document.getElementById('activityList');
+            activityList.insertBefore(activityItem, activityList.firstChild);
+            
+            // Keep only last 10 activities
+            if (activityList.children.length > 10) {
+                activityList.removeChild(activityList.lastChild);
+            }
+            
+            // Store in log
+            activityLog.unshift({
+                message,
+                type,
+                time: timeString
+            });
+        }
+
+        // Mark attendance for an employee
+        async function markAttendance(employeeId, status) {
+            try {
+                const response = await fetch('{% url "emp:mark_attendance" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        employee_id: employeeId,
+                        date: formatDate(currentDate),
+                        status: status
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update stats
+                    updateStatsAfterMark(employeeId, status);
+                    
+                    // Add activity
+                    const employeeName = document.querySelector(`tr[data-employee-id="${employeeId}"] .employee-info div:first-child`).textContent.trim();
+                    addActivity(`${employeeName} marked as ${status}`, status);
+                    
+                    // Update the row visually
+                    const row = document.querySelector(`tr[data-employee-id="${employeeId}"]`);
+                    if (row) {
+                        row.setAttribute('data-status', status);
+                        const statusCell = row.querySelector('.attendance-status');
+                        if (statusCell) {
+                            statusCell.className = `attendance-status status-${status}`;
+                            const statusText = status === 'present' ? 'Present' :
+                                             status === 'absent' ? 'Absent' :
+                                             status === 'late' ? 'Late' :
+                                             status === 'leave' ? 'On Leave' : 'Half Day';
+                            const iconClass = status === 'present' ? 'check-circle' :
+                                            status === 'absent' ? 'times-circle' :
+                                            status === 'late' ? 'clock' :
+                                            status === 'leave' ? 'umbrella-beach' : 'adjust';
+                            
+                            statusCell.innerHTML = `
+                                <i class="fas fa-${iconClass}"></i>
+                                ${statusText}
+                            `;
+                        }
+                    }
+                    
+                    showNotification('success', `Attendance marked as ${status}`);
+                } else {
+                    showNotification('error', data.error || 'Failed to mark attendance');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('error', 'Failed to mark attendance');
+            }
+        }
+
+        // Update stats after marking attendance
+        function updateStatsAfterMark(employeeId, newStatus) {
+            const row = document.querySelector(`tr[data-employee-id="${employeeId}"]`);
+            if (!row) return;
+            
+            const oldStatus = row.getAttribute('data-status');
+            if (oldStatus === newStatus) return;
+            
+            // Update counters
+            const presentCount = document.getElementById('presentCount');
+            const absentCount = document.getElementById('absentCount');
+            const lateCount = document.getElementById('lateCount');
+            
+            let presentVal = parseInt(presentCount.textContent) || 0;
+            let absentVal = parseInt(absentCount.textContent) || 0;
+            let lateVal = parseInt(lateCount.textContent) || 0;
+            
+            // Decrement old status
+            if (oldStatus === 'present') presentVal--;
+            else if (oldStatus === 'absent') absentVal--;
+            else if (oldStatus === 'late') lateVal--;
+            
+            // Increment new status
+            if (newStatus === 'present') presentVal++;
+            else if (newStatus === 'absent') absentVal++;
+            else if (newStatus === 'late') lateVal++;
+            
+            // Update displays
+            presentCount.textContent = Math.max(0, presentVal);
+            absentCount.textContent = Math.max(0, absentVal);
+            lateCount.textContent = Math.max(0, lateVal);
+            
+            // Update charts
+            initializeCharts();
+            
+            // Reset refresh timer
+            refreshTimer = 30;
+            document.getElementById('refreshTimer').textContent = '30s';
+        }
+
+        // Update check-in/check-out time
+        async function updateTime(employeeId, type, time) {
+            if (!time) return;
+            
+            try {
+                const row = document.querySelector(`tr[data-employee-id="${employeeId}"]`);
+                const currentStatus = row ? row.getAttribute('data-status') : 'present';
+                
+                const response = await fetch('{% url "emp:mark_attendance" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        employee_id: employeeId,
+                        date: formatDate(currentDate),
+                        status: currentStatus || 'present',
+                        [type]: time
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addActivity(`Updated ${type} time for employee`, 'info');
+                    showNotification('success', 'Time updated successfully');
+                } else {
+                    showNotification('error', data.error || 'Failed to update time');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('error', 'Failed to update time');
+            }
+        }
+
+        // Show bulk mark modal
+        function showBulkMarkModal() {
+            document.getElementById('bulkMarkModal').classList.add('active');
+        }
+
+        // Show notes modal
+        function showNotesModal(employeeId, employeeName) {
+            selectedEmployeeId = employeeId;
+            selectedEmployeeName = employeeName;
+            document.getElementById('employeeName').textContent = employeeName;
+            document.getElementById('notesEmployeeId').value = employeeId;
+            
+            // Clear previous notes
+            document.getElementById('attendanceNotes').value = '';
+            document.getElementById('charCount').textContent = '0/500';
+            
+            document.getElementById('notesModal').classList.add('active');
+        }
+
+        // Save notes
+        async function saveNotes() {
+            const notes = document.getElementById('attendanceNotes').value;
+            
+            if (notes.length > 500) {
+                showNotification('error', 'Notes cannot exceed 500 characters');
+                return;
+            }
+            
+            try {
+                const response = await fetch('{% url "emp:mark_attendance" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        employee_id: selectedEmployeeId,
+                        date: formatDate(currentDate),
+                        notes: notes
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addActivity(`Added notes for ${selectedEmployeeName}`, 'info');
+                    showNotification('success', 'Notes saved successfully');
+                    closeModal();
+                } else {
+                    showNotification('error', data.error || 'Failed to save notes');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('error', 'Failed to save notes');
+            }
+        }
+
+        // Character count for notes
+        function updateCharCount() {
+            const textarea = document.getElementById('attendanceNotes');
+            const charCount = document.getElementById('charCount');
+            if (textarea && charCount) {
+                const count = textarea.value.length;
+                charCount.textContent = `${count}/500`;
+                charCount.style.color = count > 450 ? 'var(--attendance-absent)' : 'var(--gray)';
+            }
+        }
+
+        // Filter attendance table
+        function filterAttendance() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const employeeFilter = document.getElementById('employeeFilter').value;
+            const rows = document.querySelectorAll('#attendanceTableBody tr');
+            
+            rows.forEach(row => {
+                const employeeId = row.getAttribute('data-employee-id');
+                const status = row.getAttribute('data-status');
+                
+                let show = true;
+                
+                // Filter by status
+                if (statusFilter !== 'all' && status !== statusFilter) {
+                    show = false;
+                }
+                
+                // Filter by employee
+                if (employeeFilter !== 'all' && employeeId !== employeeFilter) {
+                    show = false;
+                }
+                
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        // Select all employees in bulk mark
+        function selectAllEmployees() {
+            document.querySelectorAll('input[name="employees"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        // Deselect all employees in bulk mark
+        function deselectAllEmployees() {
+            document.querySelectorAll('input[name="employees"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+
+        // Close modal
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.classList.remove('active');
+            });
+        }
+
+        // Get CSRF token
+        function getCsrfToken() {
+            const token = document.querySelector('[name=csrfmiddlewaretoken]');
+            return token ? token.value : '';
+        }
+
+        // Refresh chart
+        function refreshChart() {
+            initializeCharts();
+            showNotification('success', 'Charts refreshed');
+        }
+
+        // Show notification
+        function showNotification(type, message) {
+            // Remove existing notifications
+            document.querySelectorAll('.notification').forEach(n => n.remove());
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type === 'error' ? 'notification-error' : 'notification-success'}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <div class="notification-icon">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                    </div>
+                    <div>
+                        <strong style="display: block; margin-bottom: 5px;">${type === 'success' ? 'Success' : 'Error'}</strong>
+                        <span>${message}</span>
+                    </div>
+                </div>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.2rem; opacity: 0.7;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'slideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) reverse';
+                    setTimeout(() => notification.remove(), 500);
+                }
+            }, 5000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateDisplay();
+            updateCurrentTime();
+            initializeCharts();
+            startAutoRefresh();
+            
+            // Update time every minute
+            setInterval(updateCurrentTime, 60000);
+            
+            // Character count listener
+            document.getElementById('attendanceNotes')?.addEventListener('input', updateCharCount);
+            
+            // Close modals when clicking outside
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModal();
+                    }
+                });
+            });
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+                if (e.ctrlKey && e.key === 'r') {
+                    e.preventDefault();
+                    refreshAttendanceData();
+                }
+            });
+            
+            // Add some sample activities
+            setTimeout(() => addActivity('System started monitoring attendance', 'info'), 1000);
+            setTimeout(() => addActivity('Attendance dashboard loaded successfully', 'info'), 2000);
+        });
+    </script>
+</body>
+</html>
