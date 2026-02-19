@@ -16,7 +16,7 @@ class CustomUserInline(admin.StackedInline):
     model = CustomUser
     can_delete = False
     verbose_name_plural = 'Employee Profile'
-    fields = ('phone_number', 'address', 'department', 'role', 'is_active', 'profile_picture')
+    fields = ('phone_number', 'address', 'department', 'role', 'is_active')
     readonly_fields = ('created_at', 'updated_at')
     fk_name = 'user'
 
@@ -69,7 +69,7 @@ class DepartmentAdmin(admin.ModelAdmin):
     manager_name.short_description = 'Manager'
     
     def employee_count(self, obj):
-        return obj.customuser_set.count()
+        return obj.employees.count()
     employee_count.short_description = 'Employees'
 
 # Attendance Admin
